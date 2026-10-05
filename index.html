@@ -28,7 +28,15 @@ function fresh(){return{coins:0,skills:SKILLS.map(()=>({xp:0,tier:0})),days:{},l
 let state=fresh(),storageOK=true;
 try{let raw=localStorage.getItem(KEY);if(raw){let s=JSON.parse(raw);if(!s||!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||!Number.isFinite(s.last)||!Number.isFinite(s.bank))throw Error('Invalid save');state=s;}}catch(e){storageOK=false;}
 let tab='town',draft=[],timer,selectedBuilding=0;
-function day(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const RESET_SHIFT=9.5*60*60*1000;
+function day(now=Date.now()){return new Date(now-RESET_SHIFT).toISOString().slice(0,10);}
+function nextReset(now=Date.now()){return new Date(day(now)+'T00:00:00Z').getTime()+86400000+RESET_SHIFT;}
+function dailyEntry(){const key=day();let e=state.days[key];if(e){state.dailyResetVersion=1;return e;}
+// Old versions stored local calendar dates. Keep a completed or partial check-in locked during this upgrade.
+const local=new Date(),oldKey=local.getFullYear()+'-'+String(local.getMonth()+1).padStart(2,'0')+'-'+String(local.getDate()).padStart(2,'0');
+if(!state.dailyResetVersion){state.dailyResetVersion=1;const old=state.days[oldKey];if(old&&old.scores.some(Number.isInteger)){if(oldKey!==key){state.days[key]=old;delete state.days[oldKey];}e=old;}save();}
+return e;}
+function resetText(){const remaining=Math.max(0,nextReset()-Date.now()),hours=Math.floor(remaining/3600000),minutes=Math.floor(remaining%3600000/60000);return 'Resets at 3:30 a.m. CST (UTC−6) · '+hours+'h '+minutes+'m remaining';}
 function income(){return 2+state.skills.reduce((n,s)=>n+s.tier*2,0);}
 function accrue(){const now=Date.now();state.bank=Math.min(income()*8,state.bank+Math.min(CAP,Math.max(0,now-state.last))/3600000*income());state.last=now;}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true;}catch(e){storageOK=false;notify('Saving is unavailable. Keep this page open or export a backup.');}}
@@ -132,9 +140,10 @@ html+='<button id="back-town" class="back-button">← Back to Town</button><sect
 }
 if(tab==='character')html+=characterScreen();
 if(tab==='check'){
-const entry=state.days[day()];if(draft.length!==5)draft=[null,null,null,null,null];
-html+='<section class="card"><h2>Daily check-in</h2><p>'+day()+'</p><p class="muted">Check in once per skill each day. Saved scores are final until tomorrow.</p><p class="muted">0 = none · 1 = a little · 2 = some · 3 = most · 4 = nearly · 5 = met your goal. Planned rest counts.</p></section>';
-SKILLS.forEach((s,i)=>{const done=entry&&Number.isInteger(entry.scores[i]);html+='<section class="card skill-card" style="--skill:'+COLORS[i]+'"><h3>'+s.icon+' '+s.name+'</h3><p class="muted">'+s.hint+'</p>'+(done?'<div class="saved-score">✓ Checked in · '+entry.scores[i]+'/5 · '+(entry.scores[i]*entry.rates[i])+' XP earned</div>':'<div class="scores" role="group" aria-label="'+s.name+' score">'+[0,1,2,3,4,5].map(v=>'<button data-skill="'+i+'" data-score="'+v+'" aria-pressed="'+(draft[i]===v)+'">'+v+'</button>').join('')+'</div><button class="check-save" data-submit="'+i+'" '+(draft[i]===null?'disabled':'')+'>Save '+s.name+' · '+(draft[i]===null?0:draft[i]*RATES[state.skills[i].tier])+' XP</button>')+'</section>';});
+const entry=dailyEntry();if(draft.length!==5)draft=[null,null,null,null,null];
+html+='<section class="card"><h2>Daily check-in</h2><p class="muted">'+resetText()+'</p><p>One check-in per day covering all five skills. Saved scores are final.</p><p class="muted">0 = none · 1 = a little · 2 = some · 3 = most · 4 = nearly · 5 = met your goal. Planned rest counts.</p>'+(entry?'<div class="saved-score">✓ Your daily check-in is complete. Come back after the reset.</div>':'')+'</section>';
+SKILLS.forEach((s,i)=>{html+='<section class="card skill-card" style="--skill:'+COLORS[i]+'"><h3>'+s.icon+' '+s.name+'</h3><p class="muted">'+s.hint+'</p>'+(entry?'<div class="saved-score">'+(Number.isInteger(entry.scores[i])?entry.scores[i]+'/5 · '+entry.scores[i]*entry.rates[i]+' XP earned':'Not recorded in previous check-in')+'</div>':'<div class="scores" role="group" aria-label="'+s.name+' score">'+[0,1,2,3,4,5].map(v=>'<button data-skill="'+i+'" data-score="'+v+'" aria-pressed="'+(draft[i]===v)+'">'+v+'</button>').join('')+'</div>')+'</section>';});
+if(!entry)html+='<button id="save-daily" class="wide" '+(draft.some(v=>!Number.isInteger(v))?'disabled':'')+'>Save daily check-in</button>';
 }
 if(tab==='skills'){html+='<section class="card"><h2>Your fitness skills</h2><p class="muted">Every check-in grows your skills. Upgrade your training facilities to earn more XP.</p></section>';SKILLS.forEach((s,i)=>{let x=state.skills[i],l=level(x.xp),p=l===99?1:(x.xp-XP[l])/(XP[l+1]-XP[l]);html+='<section class="card skill-card" style="--skill:'+COLORS[i]+'"><div class="row"><h3>'+s.icon+' '+s.name+'</h3><b class="level-badge">Level '+l+'</b></div><progress max="1" value="'+p+'" aria-label="'+s.name+' level progress"></progress><div class="row muted"><span>'+x.xp.toLocaleString()+' XP</span><span>'+(l===99?'Mastered 🏆':(XP[l+1]-x.xp).toLocaleString()+' XP to level '+(l+1))+'</span></div><p class="muted">'+TIERS[x.tier]+' training · '+RATES[x.tier]+' XP per point</p><p class="title-label">'+titleFor(i,l)+'</p>'+(l===99?'<div class="crown-unlock">'+crown(i)+'<b>'+CROWNS[i]+'</b><p class="muted">Level 99 mastery reward</p></div>':'<p class="muted">Next title: level '+(Math.min(99,Math.floor(l/7)*7+7))+' · '+titleFor(i,Math.floor(l/7)*7+7)+'</p>')+'</section>';});}
 document.getElementById('view').innerHTML=html;save();}
@@ -154,11 +163,13 @@ if(b.dataset.tab){tab=b.dataset.tab;draft=[];render();window.scrollTo(0,0);}
 if(b.dataset.score!==undefined){draft[Number(b.dataset.skill)]=Number(b.dataset.score);render();}
 if(b.id==='collect'){accrue();let n=Math.floor(state.bank);state.bank-=n;state.coins+=n;render();if(n>0)reward('+'+n+' coins');notify('Collected '+n+' coins.');}
 if(b.dataset.upgrade!==undefined){accrue();let s=state.skills[Number(b.dataset.upgrade)],cost=COSTS[s.tier+1];if(s.tier<5&&state.coins>=cost){state.coins-=cost;s.tier++;render();reward('Training upgraded!');notify('Training upgraded! Future check-ins earn more XP.');}}
-if(b.dataset.submit!==undefined){
-const i=Number(b.dataset.submit),score=draft[i];if(!Number.isInteger(i)||i<0||i>=5||!Number.isInteger(score)||score<0||score>5)return;
-const key=day();let entry=state.days[key];if(entry&&Number.isInteger(entry.scores[i])){notify('This skill is already checked in today.');return;}
-if(!entry)entry=state.days[key]={scores:[null,null,null,null,null],rates:[null,null,null,null,null]};
-const rate=RATES[state.skills[i].tier],before=level(state.skills[i].xp);entry.scores[i]=score;entry.rates[i]=rate;state.skills[i].xp+=score*rate;state.coins+=score*2;draft[i]=null;render();if(score>0)reward('+'+(score*rate)+' XP · +'+(score*2)+' coins');notify(SKILLS[i].name+' saved for today.');queueLevels(i,before,level(state.skills[i].xp));
+if(b.id==='save-daily'){
+if(dailyEntry()){notify('You have already checked in today. '+resetText());render();return;}
+if(draft.length!==5||draft.some(v=>!Number.isInteger(v)||v<0||v>5))return;
+const scores=draft.slice(),rates=state.skills.map(s=>RATES[s.tier]),before=state.skills.map(s=>level(s.xp));
+state.days[day()]={scores,rates};state.skills.forEach((s,i)=>s.xp+=scores[i]*rates[i]);const coins=scores.reduce((n,v)=>n+v*2,0);state.coins+=coins;draft=[];render();
+const earned=scores.reduce((n,v,i)=>n+v*rates[i],0);if(earned>0)reward('+'+earned+' XP · +'+coins+' coins');notify('Daily check-in saved. '+resetText());
+state.skills.forEach((s,i)=>queueLevels(i,before[i],level(s.xp)));
 }
 if(b.id==='export'){accrue();save();const url=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='fitville-save-'+day()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 });
@@ -168,5 +179,5 @@ if(s.wardrobe&&(!Array.isArray(s.wardrobe.owned)||!s.wardrobe.owned.every(x=>ITE
 for(const v of Object.values(s.days)){if(!Array.isArray(v.scores)||v.scores.length!==5||!v.scores.every(n=>n===null||(Number.isInteger(n)&&n>=0&&n<=5))||!Array.isArray(v.rates)||v.rates.length!==5||!v.rates.every((n,i)=>v.scores[i]===null?n===null:RATES.includes(n)))throw Error();}
 if(!confirm('Replace progress on this device with this backup?'))return;state=s;draft=[];render();notify('Backup restored.');}catch(err){notify('This file is not a valid Fitville save.');}});
 document.getElementById('level-dialog').addEventListener('cancel',e=>{e.preventDefault();nextCelebration();});
-render();setInterval(()=>{if(tab==='town'&&document.visibilityState==='visible')render();},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){draft=[];render();}});window.addEventListener('pagehide',()=>{accrue();save();});
+render();setInterval(()=>{if((tab==='town'||tab==='check')&&document.visibilityState==='visible')render();},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){draft=[];render();}});window.addEventListener('pagehide',()=>{accrue();save();});
 </script></body></html>
