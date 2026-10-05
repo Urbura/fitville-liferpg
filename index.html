@@ -22,7 +22,7 @@ const SKILLS=[
 const TIERS=['Starter','Basic','Improved','Advanced','Elite','Master'];
 const RATES=[1,5,20,80,250,600], COSTS=[0,15,500,2000,8000,25000];
 const KEY='fitville-v1', CAP=8*60*60*1000;
-const XP=[0,0];let points=0;for(let l=1;l<99;l++){points+=Math.floor(l+300*Math.pow(2,l/7));XP[l+1]=Math.ceil(Math.floor(points/4)/100);}
+const XP=[0,0];let points=0;for(let l=1;l<99;l++){points+=Math.floor(l+300*Math.pow(2,l/7));XP[l+1]=Math.max(6,Math.ceil(Math.floor(points/4)/12));}
 function level(x){let l=1;while(l<99&&x>=XP[l+1])l++;return l;}
 function fresh(){return{coins:0,skills:SKILLS.map(()=>({xp:0,tier:0})),days:{},last:Date.now(),bank:0};}
 let state=fresh(),storageOK=true;
