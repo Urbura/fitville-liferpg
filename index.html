@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#183f35"><title>Fitville LifeRPG</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f2f5ed;color:#203c33;font:16px system-ui,sans-serif}header{background:#183f35;color:white;padding:24px 20px}header>div,main{max-width:720px;margin:auto}h1{margin:0;font-size:30px}p{line-height:1.5}.muted{color:#597067;font-size:14px}header .muted{color:#bdd5c8}main{padding:18px 16px 100px}button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:#28684f;color:white;cursor:pointer;min-height:44px}button:disabled{opacity:.5;cursor:default}.card{background:white;border:1px solid #d9e3d5;border-radius:20px;padding:20px;margin-bottom:14px;box-shadow:0 4px 16px #203c3307}.row{display:flex;justify-content:space-between;align-items:center;gap:12px}h2{font-size:21px;margin:0 0 12px}h3{margin:0;font-size:18px}.scores{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:16px}.scores button{padding:10px 0;background:#edf1e8;color:#203c33}.scores button[aria-pressed=true]{background:#28684f;color:white;outline:2px solid #d5a850}progress{width:100%;height:14px;accent-color:#d5a850;margin:12px 0 4px}nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #d9e3d5;display:flex;justify-content:center;padding:10px 8px calc(10px + env(safe-area-inset-bottom));gap:10px}nav button{background:#edf1e8;color:#203c33}nav button[aria-selected=true]{background:#183f35;color:white}#notice{position:fixed;top:14px;left:16px;right:16px;max-width:680px;margin:auto;background:#183f35;color:white;padding:16px;border-radius:14px;z-index:3}#notice:empty{display:none}.wide{width:100%}.stats{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}.stats span{background:#ffffff15;padding:8px 12px;border-radius:10px}.building{font-size:36px}.pill{font-size:12px;background:#edf1e8;padding:5px 9px;border-radius:20px}.tools{margin-top:24px}a{color:#28684f}
+</style></head><body>
+<header><div><div class="muted">YOUR EVERYDAY ADVENTURE</div><h1>Fitville LifeRPG</h1><p class="muted">Small habits. A growing town.</p><div class="stats"><span id="wallet"></span><span id="total"></span></div></div></header>
+<main id="view"></main><div id="notice" role="status"></div>
+<nav aria-label="Main navigation"><button data-tab="town">Town</button><button data-tab="check">Check-In</button><button data-tab="skills">Skills</button></nav>
+<script>
+const SKILLS=[
+{name:'Sleep',building:'Rest Lodge',icon:'🌙',hint:'Your proposed 5/5 target: 7½–8½ hours of sleep.'},
+{name:'Healthy Eating',building:'Fresh Market',icon:'🥗',hint:'Rate how well you followed your personal eating goals.'},
+{name:'Stretching',building:'Wellness Studio',icon:'🧘',hint:'Rate completion of your planned mobility routine.'},
+{name:'Cardio',building:'Walking Trail',icon:'🚶',hint:'Rate completion of your movement or cardio goal.'},
+{name:'Strength',building:'Training Gym',icon:'🏋️',hint:'Rate following your workout plan; planned recovery counts.'}
+];
+const TIERS=['Starter','Basic','Improved','Advanced','Elite','Master'];
+const RATES=[1,5,20,80,250,600], COSTS=[0,100,500,2000,8000,25000];
+const KEY='fitville-v1', CAP=8*60*60*1000;
+const XP=[0,0];let points=0;for(let l=1;l<99;l++){points+=Math.floor(l+300*Math.pow(2,l/7));XP[l+1]=Math.ceil(Math.floor(points/4)/100);}
+function level(x){let l=1;while(l<99&&x>=XP[l+1])l++;return l;}
+function fresh(){return{coins:0,skills:SKILLS.map(()=>({xp:0,tier:0})),days:{},last:Date.now(),bank:0};}
+let state=fresh(),storageOK=true;
+try{let raw=localStorage.getItem(KEY);if(raw){let s=JSON.parse(raw);if(!s||!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||!Number.isFinite(s.last)||!Number.isFinite(s.bank))throw Error('Invalid save');state=s;}}catch(e){storageOK=false;}
+let tab='town',draft=[],timer;
+function day(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function income(){return 2+state.skills.reduce((n,s)=>n+s.tier*2,0);}
+function accrue(){const now=Date.now();state.bank=Math.min(income()*8,state.bank+Math.min(CAP,Math.max(0,now-state.last))/3600000*income());state.last=now;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true;}catch(e){storageOK=false;notify('Saving is unavailable. Keep this page open or export a backup.');}}
+function notify(t){document.getElementById('notice').textContent=t;clearTimeout(timer);timer=setTimeout(()=>document.getElementById('notice').textContent='',5000);}
+function render(){accrue();document.getElementById('wallet').textContent='🪙 '+Math.floor(state.coins).toLocaleString()+' coins';document.getElementById('total').textContent='Total level '+state.skills.reduce((n,s)=>n+level(s.xp),0)+' / 495';
+document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===tab));
+let html='';
+if(!storageOK)html+='<p class="card">Device saving is unavailable or an old save could not be loaded. Export a backup below to preserve your progress.</p>';
+if(tab==='town'){html+='<section class="card"><h2>Welcome to your town</h2><p>Your buildings earn <b>'+income()+' coins per hour</b>. Up to eight hours can accumulate.</p><button id="collect">Collect '+Math.floor(state.bank)+' idle coins</button><p class="muted">Higher training tiers improve XP and town income.</p></section>';
+SKILLS.forEach((s,i)=>{const t=state.skills[i].tier;html+='<section class="card"><div class="row"><span class="building">'+s.icon+'</span><div style="flex:1"><h3>'+s.building+'</h3><p class="muted">'+s.name+' · '+TIERS[t]+' · '+RATES[t]+' XP per score point</p></div></div>'+(t<5?'<button class="wide" data-upgrade="'+i+'" '+(state.coins<COSTS[t+1]?'disabled':'')+'>Upgrade to '+TIERS[t+1]+' · '+COSTS[t+1].toLocaleString()+' coins</button>':'<span class="pill">Fully upgraded</span>')+'</section>';});
+html+='<p class="muted">Training facilities are game upgrades. Continue following your personal activity plan.</p><section class="card tools"><h2>Save backup</h2><p class="muted">Progress stays in this browser on this device. Export before switching devices or clearing browser data.</p><button id="export">Export save</button> <label><input id="import" type="file" accept=".json,application/json" style="max-width:100%;margin-top:14px" aria-label="Import save backup"></label></section>';}
+if(tab==='check'){const entry=state.days[day()];if(draft.length!==5)draft=entry?entry.scores.slice():[null,null,null,null,null];
+html+='<section class="card"><h2>Daily check-in</h2><p>'+day()+'</p><p class="muted">0 = none · 1 = a little · 2 = some · 3 = most · 4 = nearly · 5 = met your goal. Planned rest counts toward following your plan.</p><p class="muted">'+(entry?'Today is saved. Edits adjust the original reward using today’s locked training rates.':'Each point earns 2 coins plus XP at your current training tier.')+'</p></section>';
+SKILLS.forEach((s,i)=>html+='<section class="card"><h3>'+s.icon+' '+s.name+'</h3><p class="muted">'+s.hint+'</p><div class="scores" role="group" aria-label="'+s.name+' score">'+[0,1,2,3,4,5].map(v=>'<button data-skill="'+i+'" data-score="'+v+'" aria-pressed="'+(draft[i]===v)+'">'+v+'</button>').join('')+'</div></section>');
+html+='<button id="submit" class="wide" '+(draft.some(v=>v===null)?'disabled':'')+'>'+(entry?'Update Today':'Save Today')+'</button>';}
+if(tab==='skills'){html+='<section class="card"><h2>Your fitness skills</h2><p class="muted">An OSRS-shaped level curve, scaled for daily play. Coins unlock faster training. Six-month progression is our playtesting target.</p></section>';SKILLS.forEach((s,i)=>{let x=state.skills[i],l=level(x.xp),p=l===99?1:(x.xp-XP[l])/(XP[l+1]-XP[l]);html+='<section class="card"><div class="row"><h3>'+s.icon+' '+s.name+'</h3><b>Level '+l+'</b></div><progress max="1" value="'+p+'" aria-label="'+s.name+' level progress"></progress><div class="row muted"><span>'+x.xp.toLocaleString()+' XP</span><span>'+(l===99?'Mastered 🏆':(XP[l+1]-x.xp).toLocaleString()+' XP to level '+(l+1))+'</span></div><p class="muted">'+TIERS[x.tier]+' training · '+RATES[x.tier]+' XP per point</p></section>';});}
+document.getElementById('view').innerHTML=html;save();}
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+if(b.dataset.tab){tab=b.dataset.tab;draft=[];render();}
+if(b.dataset.score!==undefined){draft[Number(b.dataset.skill)]=Number(b.dataset.score);render();}
+if(b.id==='collect'){accrue();let n=Math.floor(state.bank);state.bank-=n;state.coins+=n;render();notify('Collected '+n+' coins.');}
+if(b.dataset.upgrade!==undefined){accrue();let s=state.skills[Number(b.dataset.upgrade)],cost=COSTS[s.tier+1];if(s.tier<5&&state.coins>=cost){state.coins-=cost;s.tier++;render();notify('Training upgraded! Future check-ins earn more XP.');}}
+if(b.id==='submit'){if(draft.length!==5||draft.some(v=>!Number.isInteger(v)||v<0||v>5))return;
+let old=state.days[day()],rates=old?old.rates:state.skills.map(s=>RATES[s.tier]),previous=old?old.scores:[0,0,0,0,0],delta=draft.reduce((n,v,i)=>n+2*(v-previous[i]),0);
+if(state.coins+delta<0){notify('You have already spent these coins. Collect more coins before lowering today’s total.');return;}
+let levels=state.skills.map(s=>level(s.xp));state.coins+=delta;state.skills.forEach((s,i)=>s.xp+=rates[i]*(draft[i]-previous[i]));state.days[day()]={scores:draft.slice(),rates};render();let gained=state.skills.filter((s,i)=>level(s.xp)>levels[i]).length;notify('Check-in saved.'+(gained?' Level up in '+gained+' skill'+(gained>1?'s!':'!'):''));}
+if(b.id==='export'){accrue();save();const url=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='fitville-save-'+day()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+});
+document.addEventListener('change',async e=>{if(e.target.id!=='import'||!e.target.files[0])return;try{let s=JSON.parse(await e.target.files[0].text());if(!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||typeof s.days!=='object'||!Number.isFinite(s.bank)||s.bank<0||!Number.isFinite(s.last))throw Error();
+for(const v of Object.values(s.days)){if(!Array.isArray(v.scores)||v.scores.length!==5||!v.scores.every(n=>Number.isInteger(n)&&n>=0&&n<=5)||!Array.isArray(v.rates)||v.rates.length!==5||!v.rates.every(n=>RATES.includes(n)))throw Error();}
+if(!confirm('Replace progress on this device with this backup?'))return;state=s;draft=[];render();notify('Backup restored.');}catch(err){notify('This file is not a valid Fitville save.');}});
+render();setInterval(()=>{if(tab==='town'&&document.visibilityState==='visible')render();},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){draft=[];render();}});window.addEventListener('pagehide',()=>{accrue();save();});
+</script></body></html>
