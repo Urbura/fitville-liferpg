@@ -31,10 +31,10 @@ let tab='town',draft=[],timer,selectedBuilding=0;
 const RESET_SHIFT=9.5*60*60*1000;
 function day(now=Date.now()){return new Date(now-RESET_SHIFT).toISOString().slice(0,10);}
 function nextReset(now=Date.now()){return new Date(day(now)+'T00:00:00Z').getTime()+86400000+RESET_SHIFT;}
-function dailyEntry(){const key=day();let e=state.days[key];if(e){state.dailyResetVersion=1;return e;}
-// Old versions stored local calendar dates. Keep a completed or partial check-in locked during this upgrade.
+function dailyEntry(){const key=day();let e=state.days[key];if(e){state.dailyResetVersion=2;return e;}
+// Old versions stored local calendar dates. Preserve any skill check-ins already completed during migration.
 const local=new Date(),oldKey=local.getFullYear()+'-'+String(local.getMonth()+1).padStart(2,'0')+'-'+String(local.getDate()).padStart(2,'0');
-if(!state.dailyResetVersion){state.dailyResetVersion=1;const old=state.days[oldKey];if(old&&old.scores.some(Number.isInteger)){if(oldKey!==key){state.days[key]=old;delete state.days[oldKey];}e=old;}save();}
+if((state.dailyResetVersion||0)<2){state.dailyResetVersion=2;const old=state.days[oldKey];if(old&&old.scores.some(Number.isInteger)){if(oldKey!==key){state.days[key]=old;delete state.days[oldKey];}e=old;}save();}
 return e;}
 function resetText(){const remaining=Math.max(0,nextReset()-Date.now()),hours=Math.floor(remaining/3600000),minutes=Math.floor(remaining%3600000/60000);return 'Resets at 3:30 a.m. CST (UTC−6) · '+hours+'h '+minutes+'m remaining';}
 function income(){return 2+state.skills.reduce((n,s)=>n+s.tier*2,0);}
@@ -140,10 +140,9 @@ html+='<button id="back-town" class="back-button">← Back to Town</button><sect
 }
 if(tab==='character')html+=characterScreen();
 if(tab==='check'){
-const entry=dailyEntry();if(draft.length!==5)draft=[null,null,null,null,null];
-html+='<section class="card"><h2>Daily check-in</h2><p class="muted">'+resetText()+'</p><p>One check-in per day covering all five skills. Saved scores are final.</p><p class="muted">0 = none · 1 = a little · 2 = some · 3 = most · 4 = nearly · 5 = met your goal. Planned rest counts.</p>'+(entry?'<div class="saved-score">✓ Your daily check-in is complete. Come back after the reset.</div>':'')+'</section>';
-SKILLS.forEach((s,i)=>{html+='<section class="card skill-card" style="--skill:'+COLORS[i]+'"><h3>'+s.icon+' '+s.name+'</h3><p class="muted">'+s.hint+'</p>'+(entry?'<div class="saved-score">'+(Number.isInteger(entry.scores[i])?entry.scores[i]+'/5 · '+entry.scores[i]*entry.rates[i]+' XP earned':'Not recorded in previous check-in')+'</div>':'<div class="scores" role="group" aria-label="'+s.name+' score">'+[0,1,2,3,4,5].map(v=>'<button data-skill="'+i+'" data-score="'+v+'" aria-pressed="'+(draft[i]===v)+'">'+v+'</button>').join('')+'</div>')+'</section>';});
-if(!entry)html+='<button id="save-daily" class="wide" '+(draft.some(v=>!Number.isInteger(v))?'disabled':'')+'>Save daily check-in</button>';
+const entry=dailyEntry()||{scores:[null,null,null,null,null],rates:[null,null,null,null,null]};if(draft.length!==5)draft=[null,null,null,null,null];
+html+='<section class="card"><h2>Daily check-in</h2><p class="muted">'+resetText()+'</p><p>Each skill can be checked in once per day. Check in only the skill you completed; the other skills stay available.</p><p class="muted">0 = none · 1 = a little · 2 = some · 3 = most · 4 = nearly · 5 = met your goal. Planned rest counts.</p></section>';
+SKILLS.forEach((s,i)=>{const done=Number.isInteger(entry.scores[i]);html+='<section class="card skill-card" style="--skill:'+COLORS[i]+'"><h3>'+s.icon+' '+s.name+'</h3><p class="muted">'+s.hint+'</p>'+(done?'<div class="saved-score">✓ Checked in today · '+entry.scores[i]+'/5 · '+entry.scores[i]*entry.rates[i]+' XP earned</div>':'<div class="scores" role="group" aria-label="'+s.name+' score">'+[0,1,2,3,4,5].map(v=>'<button data-skill="'+i+'" data-score="'+v+'" aria-pressed="'+(draft[i]===v)+'">'+v+'</button>').join('')+'</div><button class="wide check-save" data-save-skill="'+i+'" '+(!Number.isInteger(draft[i])?'disabled':'')+'>Check in '+s.name+'</button>')+'</section>';});
 }
 if(tab==='skills'){html+='<section class="card"><h2>Your fitness skills</h2><p class="muted">Every check-in grows your skills. Upgrade your training facilities to earn more XP.</p></section>';SKILLS.forEach((s,i)=>{let x=state.skills[i],l=level(x.xp),p=l===99?1:(x.xp-XP[l])/(XP[l+1]-XP[l]);html+='<section class="card skill-card" style="--skill:'+COLORS[i]+'"><div class="row"><h3>'+s.icon+' '+s.name+'</h3><b class="level-badge">Level '+l+'</b></div><progress max="1" value="'+p+'" aria-label="'+s.name+' level progress"></progress><div class="row muted"><span>'+x.xp.toLocaleString()+' XP</span><span>'+(l===99?'Mastered 🏆':(XP[l+1]-x.xp).toLocaleString()+' XP to level '+(l+1))+'</span></div><p class="muted">'+TIERS[x.tier]+' training · '+RATES[x.tier]+' XP per point</p><p class="title-label">'+titleFor(i,l)+'</p>'+(l===99?'<div class="crown-unlock">'+crown(i)+'<b>'+CROWNS[i]+'</b><p class="muted">Level 99 mastery reward</p></div>':'<p class="muted">Next title: level '+(Math.min(99,Math.floor(l/7)*7+7))+' · '+titleFor(i,Math.floor(l/7)*7+7)+'</p>')+'</section>';});}
 document.getElementById('view').innerHTML=html;save();}
@@ -163,13 +162,14 @@ if(b.dataset.tab){tab=b.dataset.tab;draft=[];render();window.scrollTo(0,0);}
 if(b.dataset.score!==undefined){draft[Number(b.dataset.skill)]=Number(b.dataset.score);render();}
 if(b.id==='collect'){accrue();let n=Math.floor(state.bank);state.bank-=n;state.coins+=n;render();if(n>0)reward('+'+n+' coins');notify('Collected '+n+' coins.');}
 if(b.dataset.upgrade!==undefined){accrue();let s=state.skills[Number(b.dataset.upgrade)],cost=COSTS[s.tier+1];if(s.tier<5&&state.coins>=cost){state.coins-=cost;s.tier++;render();reward('Training upgraded!');notify('Training upgraded! Future check-ins earn more XP.');}}
-if(b.id==='save-daily'){
-if(dailyEntry()){notify('You have already checked in today. '+resetText());render();return;}
-if(draft.length!==5||draft.some(v=>!Number.isInteger(v)||v<0||v>5))return;
-const scores=draft.slice(),rates=state.skills.map(s=>RATES[s.tier]),before=state.skills.map(s=>level(s.xp));
-state.days[day()]={scores,rates};state.skills.forEach((s,i)=>s.xp+=scores[i]*rates[i]);const coins=scores.reduce((n,v)=>n+v*2,0);state.coins+=coins;draft=[];render();
-const earned=scores.reduce((n,v,i)=>n+v*rates[i],0);if(earned>0)reward('+'+earned+' XP · +'+coins+' coins');notify('Daily check-in saved. '+resetText());
-state.skills.forEach((s,i)=>queueLevels(i,before[i],level(s.xp)));
+if(b.dataset.saveSkill!==undefined){
+const i=Number(b.dataset.saveSkill);if(!Number.isInteger(i)||i<0||i>=SKILLS.length)return;
+const existing=dailyEntry();if(existing&&Number.isInteger(existing.scores[i])){notify(SKILLS[i].name+' has already been checked in today. '+resetText());render();return;}
+const score=draft[i];if(!Number.isInteger(score)||score<0||score>5)return;
+const rate=RATES[state.skills[i].tier],before=level(state.skills[i].xp),earned=score*rate,coins=score*2;
+const entry=existing||{scores:[null,null,null,null,null],rates:[null,null,null,null,null]};
+entry.scores[i]=score;entry.rates[i]=rate;state.days[day()]=entry;state.skills[i].xp+=earned;state.coins+=coins;draft[i]=null;render();
+if(earned>0)reward('+'+earned+' XP · +'+coins+' 🪙');notify(SKILLS[i].name+' check-in saved. '+resetText());queueLevels(i,before,level(state.skills[i].xp));
 }
 if(b.id==='export'){accrue();save();const url=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='fitville-save-'+day()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 });
