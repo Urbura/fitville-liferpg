@@ -24,11 +24,12 @@ const SKILLS=[
 {name:'Strength',building:'Training Gym',icon:'🏋️',hint:'Rate following your workout plan; planned recovery counts.'}
 ];
 const TIERS=['Starter','Basic','Improved','Advanced','Elite','Master'];
-const RATES=[1,5,20,80,250,600], COSTS=[0,15,500,2000,8000,25000];
+const RATES=[1,3,6,12,20,35], COSTS=[0,15,400,1500,5000,15000];
 const KEY='fitville-v1', CAP=8*60*60*1000;
 const DEV=new URLSearchParams(location.search).get('dev')==='1',DEV_BACKUP='fitville-dev-backup';
 function setupDevUI(){const panel=document.getElementById('dev-tools'),open=document.getElementById('dev-open');if(!panel||!open)return;panel.hidden=!DEV;open.hidden=true;}
-const XP=[0,0];let points=0;for(let l=1;l<99;l++){points+=Math.floor(l+300*Math.pow(2,l/7));XP[l+1]=Math.max(6,Math.ceil(Math.floor(points/4)/12));}
+const XP_ANCHORS=[[1,0],[2,7],[10,100],[20,400],[30,1100],[40,3000],[50,8000],[60,20000],[70,50000],[80,110000],[90,210000],[99,350000]];
+const XP=Array(100).fill(0);for(let a=0;a<XP_ANCHORS.length-1;a++){const [l1,x1]=XP_ANCHORS[a],[l2,x2]=XP_ANCHORS[a+1];for(let l=l1;l<=l2;l++){const p=(l-l1)/(l2-l1);XP[l]=Math.round(x1+(x2-x1)*p);}}
 function level(x){let l=1;while(l<99&&x>=XP[l+1])l++;return l;}
 function fresh(){return{coins:0,skills:SKILLS.map(()=>({xp:0,tier:0})),days:{},last:Date.now(),bank:0};}
 let state=fresh(),storageOK=true;
@@ -74,16 +75,31 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=tr
 function notify(t){document.getElementById('notice').textContent=t;clearTimeout(timer);timer=setTimeout(()=>document.getElementById('notice').textContent='',5000);}
 
 const COLORS=['#7962a6','#4f7836','#267b7d','#ad5b28','#3b6daa'];
+const BUILDING_FORMS=[
+['Rest Tent','Moonlit Cabin','Rest Lodge','Dreamer Inn','Moonlight Retreat','Celestial Rest Lodge'],
+['Produce Stall','Fresh Kiosk','Fresh Market','Garden Market','Harvest Hall','Grand Harvest Market'],
+['Stretching Mat','Wellness Nook','Wellness Studio','Flow Pavilion','Harmony Hall','Grand Wellness Sanctuary'],
+['Dirt Trail','Walking Path','Walking Trail','Runner’s Circuit','Endurance Park','Grand Adventure Trail'],
+['Training Yard','Small Gym','Training Gym','Iron Hall','Champion Gym','Grand Training Arena']
+];
+function buildingForm(i,t){return BUILDING_FORMS[i][t];}
 function house(i,t){
-const c=COLORS[i], roofs=['#8871b4','#6e954d','#479a98','#d48550','#588ac2'];
-return '<svg viewBox="0 0 140 110" aria-hidden="true"><ellipse cx="70" cy="98" rx="50" ry="9" fill="#628957" opacity=".25"/>'+
-(t>1?'<rect x="14" y="55" width="25" height="38" rx="3" fill="#f1dfbc"/><path d="M10 55L26 40L42 55Z" fill="'+roofs[i]+'"/>':'')+
-'<rect x="35" y="48" width="70" height="47" rx="4" fill="#fff0cf"/><path d="M25 50L70 19L115 50Z" fill="'+roofs[i]+'"/><path d="M25 50L70 19L115 50" fill="none" stroke="'+c+'" stroke-width="5" stroke-linejoin="round"/><rect x="61" y="66" width="19" height="29" rx="5" fill="#866947"/><rect x="43" y="60" width="12" height="15" rx="3" fill="#9fc6cb"/><rect x="86" y="60" width="12" height="15" rx="3" fill="#9fc6cb"/>'+
-(t>0?'<rect x="92" y="20" width="9" height="22" rx="2" fill="#c79976"/>':'')+
-(t>2?'<path d="M37 78H103V87H37Z" fill="'+roofs[i]+'"/><rect x="108" y="58" width="10" height="36" fill="#dcc79e"/>':'')+
-(t>3?'<path d="M113 19V60" stroke="#795d42" stroke-width="3"/><path d="M114 20H135L124 28L135 35H114Z" fill="#e7bb53"/>':'')+
-(t>4?'<path d="M59 16L63 7L70 13L77 7L81 16Z" fill="#ecc75a" stroke="#ad8026" stroke-width="2"/>':'')+
-'<text x="70" y="52" text-anchor="middle" font-size="20">'+SKILLS[i].icon+'</text></svg>';
+const c=COLORS[i],roof=['#8871b4','#6e954d','#479a98','#d48550','#588ac2'][i],icon=SKILLS[i].icon;
+const extras=[
+ t>=1?'<rect x="91" y="21" width="9" height="25" rx="2" fill="#bd8d68"/>':'',
+ t>=2?'<rect x="12" y="58" width="27" height="36" rx="4" fill="#f4dfb9"/><path d="M8 59L25 42L43 59Z" fill="'+roof+'"/>':'',
+ t>=3?'<path d="M35 80H106V89H35Z" fill="'+roof+'"/><rect x="108" y="56" width="12" height="38" rx="2" fill="#dbc49a"/><circle cx="20" cy="91" r="8" fill="#51b54c"/><circle cx="122" cy="91" r="8" fill="#51b54c"/>':'',
+ t>=4?'<path d="M112 16V59" stroke="#76573f" stroke-width="3"/><path d="M113 17H137L125 26L137 35H113Z" fill="#ffd15d"/><circle cx="22" cy="35" r="6" fill="#ffe476"/><circle cx="124" cy="48" r="5" fill="#ffe476"/>':'',
+ t>=5?'<path d="M57 17L62 5L70 12L78 5L83 17Z" fill="#ffd85e" stroke="#a87920" stroke-width="2"/><path d="M18 94Q70 77 123 94" fill="none" stroke="#f3d47b" stroke-width="4"/><circle cx="9" cy="78" r="4" fill="#fff1a8"/><circle cx="132" cy="73" r="4" fill="#fff1a8"/>':''
+].join('');
+const specialty=[
+ i===0&&t>=3?'<path d="M18 25Q27 12 38 23Q29 21 25 31Q21 29 18 25Z" fill="#ffe083"/>':'',
+ i===1&&t>=3?'<g fill="#ed6f58"><circle cx="17" cy="76" r="4"/><circle cx="126" cy="80" r="4"/></g>':'',
+ i===2&&t>=3?'<path d="M12 73Q22 55 32 73Q22 67 12 73Z" fill="#70c97c"/>':'',
+ i===3&&t>=3?'<path d="M8 98Q40 79 70 98T132 98" fill="none" stroke="#d6b477" stroke-width="6"/>':'',
+ i===4&&t>=3?'<path d="M15 72H35M10 67V77M40 67V77" stroke="#606477" stroke-width="4"/>':''
+].join('');
+return '<svg viewBox="0 0 140 110" aria-hidden="true"><ellipse cx="70" cy="99" rx="'+(42+t*2)+'" ry="8" fill="#628957" opacity=".25"/><rect x="'+(38-t*2)+'" y="'+(52-t)+'" width="'+(64+t*4)+'" height="'+(43+t)+'" rx="5" fill="'+(t>=4?'#fff3d2':'#fff0cf')+'"/><path d="M'+(28-t*2)+' '+(53-t)+'L70 '+(22-t*2)+'L'+(112+t*2)+' '+(53-t)+'Z" fill="'+roof+'" stroke="'+c+'" stroke-width="'+(3+(t>=4?1:0))+'" stroke-linejoin="round"/><rect x="61" y="67" width="19" height="28" rx="5" fill="#866947"/><rect x="44" y="62" width="12" height="14" rx="3" fill="#a9d9e1"/><rect x="85" y="62" width="12" height="14" rx="3" fill="#a9d9e1"/>'+extras+specialty+'<text x="70" y="55" text-anchor="middle" font-size="'+(19+t)+'">'+icon+'</text></svg>';
 }
 function townMilestones(){return[
 {level:5,icon:'🌷',name:'Garden Paths',desc:'Flowers, shrubs and brighter landscaping spread through Fitville.'},
@@ -100,7 +116,7 @@ if(l>=20)extras+='<g><ellipse cx="300" cy="280" rx="70" ry="55" fill="#eee4c7"/>
 if(l>=26)extras+='<g transform="translate(230 8)"><path d="M0 85V30H25V10H45V30H95V10H115V30H140V85Z" fill="#e8d7bd" stroke="#765b58" stroke-width="4"/><path d="M20 30L35 8L50 30M90 30L105 8L120 30" fill="#5e8dd6" stroke="#765b58" stroke-width="3"/><path d="M58 85V55Q70 40 82 55V85" fill="#72594d"/><text x="70" y="28" text-anchor="middle" font-size="20">👑</text></g><g fill="#ffd45f"><circle cx="95" cy="90" r="5"/><circle cx="150" cy="60" r="4"/><circle cx="455" cy="75" r="5"/><circle cx="510" cy="105" r="4"/></g>';
 const trees=[[30,40],[550,25],[45,195],[565,183],[25,490],[545,490],[200,460],[425,445]].map(([x,y])=>'<g transform="translate('+x+' '+y+')"><rect x="13" y="24" width="8" height="22" rx="3" fill="#93754c"/><circle cx="17" cy="14" r="23" fill="#26a73a"/><circle cx="10" cy="9" r="14" fill="#4fc749"/></g>').join('');
 const milestoneCards=m.map(x=>'<section class="card"><div class="row"><div><h3>'+(l>=x.level?x.icon:'🔒')+' '+x.name+'</h3><p class="muted">'+x.desc+'</p></div><span class="pill">'+(l>=x.level?'✓ Unlocked':'Town '+x.level)+'</span></div></section>').join('');
-return '<div class="row town-heading"><div><h2>Your '+townTitle()+'</h2><p class="muted">Fitville changes as your Town Level grows.</p></div><span class="pill">Town '+l+'</span></div><div class="town-map" aria-label="Fitville village"><svg viewBox="0 0 600 550" preserveAspectRatio="none" aria-hidden="true"><rect width="600" height="550" fill="'+(l>=26?'#75e34c':'#6edf3e')+'"/><path d="M0 270Q180 220 300 285T600 245M300 0V550" stroke="'+(l>=20?'#f3dfaa':'#e9dbb7')+'" stroke-width="38" fill="none"/><path d="M300 150L125 155M300 150L475 155M300 370L115 370M300 370L485 370" stroke="'+(l>=20?'#f3dfaa':'#e9dbb7')+'" stroke-width="24"/>'+trees+extras+'</svg>'+SKILLS.map((s,i)=>'<button class="map-building" data-building="'+i+'" aria-label="View '+s.building+' upgrades">'+house(i,state.skills[i].tier)+'<span class="map-label">'+s.building+'<b>Level '+(state.skills[i].tier+1)+'</b></span></button>').join('')+'</div><p class="map-caption">Tap a building to open its training shop</p>'+(l>=15?'<button class="wide" data-zone="woods">🌲 Enter Whispering Woods</button>':'<button class="wide" disabled>🔒 Whispering Woods · Town Level 15</button>')+'<h2>Town Unlocks</h2>'+milestoneCards;}
+return '<div class="row town-heading"><div><h2>Your '+townTitle()+'</h2><p class="muted">Fitville changes as your Town Level grows.</p></div><span class="pill">Town '+l+'</span></div><div class="town-map" aria-label="Fitville village"><svg viewBox="0 0 600 550" preserveAspectRatio="none" aria-hidden="true"><rect width="600" height="550" fill="'+(l>=26?'#75e34c':'#6edf3e')+'"/><path d="M0 270Q180 220 300 285T600 245M300 0V550" stroke="'+(l>=20?'#f3dfaa':'#e9dbb7')+'" stroke-width="38" fill="none"/><path d="M300 150L125 155M300 150L475 155M300 370L115 370M300 370L485 370" stroke="'+(l>=20?'#f3dfaa':'#e9dbb7')+'" stroke-width="24"/>'+trees+extras+'</svg>'+SKILLS.map((s,i)=>'<button class="map-building" data-building="'+i+'" aria-label="View '+s.building+' upgrades">'+house(i,state.skills[i].tier)+'<span class="map-label">'+buildingForm(i,state.skills[i].tier)+'<b>'+TIERS[state.skills[i].tier]+' · Level '+(state.skills[i].tier+1)+'</b></span></button>').join('')+'</div><p class="map-caption">Tap a building to open its training shop</p>'+(l>=15?'<button class="wide" data-zone="woods">🌲 Enter Whispering Woods</button>':'<button class="wide" disabled>🔒 Whispering Woods · Town Level 15</button>')+'<h2>Town Unlocks</h2>'+milestoneCards;}
 function reward(text){let el=document.createElement('div');el.className='reward';el.textContent=text;document.body.append(el);setTimeout(()=>el.remove(),1900);}
 
 
@@ -191,7 +207,7 @@ html+='</section><h2>📖 Forest Discoveries</h2>'+FOREST_FINDS.map(x=>{const un
 }
 if(tab==='building'){
 const i=selectedBuilding,s=SKILLS[i],x=state.skills[i],t=x.tier;
-html+='<button id="back-town" class="back-button">← Back to Town</button><section class="card building-detail skill-card" style="--skill:'+COLORS[i]+'"><span class="anime-tag">'+s.name+' training</span><h2>'+s.building+'</h2><div class="detail-house">'+house(i,t)+'</div><span class="building-level">Building level '+(t+1)+'</span><p class="title-label">'+TIERS[t]+' training</p><div class="detail-stats"><div><b>'+RATES[t]+'</b><span>XP per score point</span></div><div><b>'+RATES[t]*5+'</b><span>XP for a 5/5 check-in</span></div></div><p class="muted">Your '+s.name+' skill is level '+level(x.xp)+' · '+titleFor(i,level(x.xp))+'</p>'+(t<5?'<div class="upgrade-preview"><h3>Next: '+TIERS[t+1]+'</h3><p>Building level '+(t+2)+' · '+RATES[t+1]+' XP per point</p><p class="muted">'+(COSTS[t+1]>state.coins?'You need '+Math.ceil(COSTS[t+1]-state.coins).toLocaleString()+' more coins.':'Ready to upgrade!')+'</p><button class="wide" data-upgrade="'+i+'" '+(state.coins<COSTS[t+1]?'disabled':'')+'>Upgrade · '+COSTS[t+1].toLocaleString()+' coins</button></div>':'<div class="upgrade-preview"><h3>Fully upgraded!</h3><p>Your training facility has reached its highest level.</p></div>')+'<button class="wide visit-check" data-tab="check">Open daily check-in</button><p class="muted">Upgrades improve future check-ins and add 2 coins per hour to town income.</p></section>';
+html+='<button id="back-town" class="back-button">← Back to Town</button><section class="card building-detail skill-card" style="--skill:'+COLORS[i]+'"><span class="anime-tag">'+s.name+' training</span><h2>'+buildingForm(i,t)+'</h2><p class="muted">'+s.building+' · '+TIERS[t]+' form</p><div class="detail-house">'+house(i,t)+'</div><span class="building-level">Building level '+(t+1)+'</span><p class="title-label">'+TIERS[t]+' training</p><div class="detail-stats"><div><b>'+RATES[t]+'</b><span>XP per score point</span></div><div><b>'+RATES[t]*5+'</b><span>XP for a 5/5 check-in</span></div></div><p class="muted">Your '+s.name+' skill is level '+level(x.xp)+' · '+titleFor(i,level(x.xp))+'</p>'+(t<5?'<div class="upgrade-preview"><h3>Next: '+buildingForm(i,t+1)+'</h3><p>'+TIERS[t+1]+' · Building level '+(t+2)+' · '+RATES[t+1]+' XP per point</p><div class="detail-house">'+house(i,t+1)+'</div><p class="muted">'+(COSTS[t+1]>state.coins?'You need '+Math.ceil(COSTS[t+1]-state.coins).toLocaleString()+' more coins.':'Ready to upgrade!')+'</p><button class="wide" data-upgrade="'+i+'" '+(state.coins<COSTS[t+1]?'disabled':'')+'>Upgrade · '+COSTS[t+1].toLocaleString()+' coins</button></div>':'<div class="upgrade-preview"><h3>Fully upgraded!</h3><p>Your training facility has reached its highest level.</p></div>')+'<button class="wide visit-check" data-tab="check">Open daily check-in</button><p class="muted">Upgrades improve future check-ins and add 2 coins per hour to town income.</p></section>';
 }
 if(tab==='character')html+=characterScreen();
 if(tab==='check'){
