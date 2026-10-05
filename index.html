@@ -35,6 +35,8 @@ function weekKey(now=Date.now()){const shifted=new Date(now-RESET_SHIFT),d=new D
 function questState(){state.quests??={daily:{},weekly:{}};state.quests.daily??={};state.quests.weekly??={};state.quests.chest??={points:0,ready:0,opened:0};return state.quests;}
 function townLevel(){return 1+state.skills.reduce((n,s)=>n+s.tier,0);}
 function townTitle(l=townLevel()){return l>=26?'Grand Fitville':l>=21?'Thriving City':l>=16?'Bustling Town':l>=11?'Growing Town':l>=6?'Village':'New Settlement';}
+function townXpBonus(l=townLevel()){return (l-1)*2;}
+function townGoldBonus(l=townLevel()){return (l-1)*2;}
 function addChestProgress(n){const chest=questState().chest;chest.points+=n;while(chest.points>=5){chest.points-=5;chest.ready++;}}
 function checkedCount(entry){return entry&&Array.isArray(entry.scores)?entry.scores.filter(Number.isInteger).length:0;}
 function weeklyProgress(){const start=weekKey(),startMs=new Date(start+'T00:00:00Z').getTime(),endMs=startMs+7*86400000;let days=0,checks=0,skills=new Set();for(const [k,e] of Object.entries(state.days)){const ms=new Date(k+'T00:00:00Z').getTime();if(ms>=startMs&&ms<endMs){const n=checkedCount(e);if(n){days++;checks+=n;e.scores.forEach((v,i)=>{if(Number.isInteger(v))skills.add(i);});}}}return{days,checks,skills:skills.size};}
@@ -45,7 +47,8 @@ const local=new Date(),oldKey=local.getFullYear()+'-'+String(local.getMonth()+1)
 if((state.dailyResetVersion||0)<2){state.dailyResetVersion=2;const old=state.days[oldKey];if(old&&old.scores.some(Number.isInteger)){if(oldKey!==key){state.days[key]=old;delete state.days[oldKey];}e=old;}save();}
 return e;}
 function resetText(){const remaining=Math.max(0,nextReset()-Date.now()),hours=Math.floor(remaining/3600000),minutes=Math.floor(remaining%3600000/60000);return 'Resets at 3:30 a.m. CST (UTC−6) · '+hours+'h '+minutes+'m remaining';}
-function income(){return 2+state.skills.reduce((n,s)=>n+s.tier*2,0);}
+function baseIncome(){return 2+state.skills.reduce((n,s)=>n+s.tier*2,0);}
+function income(){return baseIncome()*(1+townGoldBonus()/100);}
 function accrue(){const now=Date.now();state.bank=Math.min(income()*8,state.bank+Math.min(CAP,Math.max(0,now-state.last))/3600000*income());state.last=now;}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true;}catch(e){storageOK=false;notify('Saving is unavailable. Keep this page open or export a backup.');}}
 function notify(t){document.getElementById('notice').textContent=t;clearTimeout(timer);timer=setTimeout(()=>document.getElementById('notice').textContent='',5000);}
@@ -141,7 +144,7 @@ document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected
 let html='';
 if(!state.character){document.getElementById('view').innerHTML=creator();document.querySelector('nav').hidden=true;return;}document.querySelector('nav').hidden=false;
 if(!storageOK)html+='<p class="card">Device saving is unavailable or an old save could not be loaded. Export a backup below to preserve your progress.</p>';
-if(tab==='town'){html+=characterCard();html+='<section class="card"><div class="row"><div><span class="anime-tag">Town Progress</span><h2>'+townTitle()+'</h2></div><b class="level-badge">Town Level '+townLevel()+'</b></div><progress max="26" value="'+townLevel()+'" aria-label="Town level progress"></progress><p class="muted">Upgrade any training building to increase your Town Level. Maximum Town Level: 26.</p></section>';html+=village();html+='<section class="card collect-card"><h2>Welcome to your town</h2><p>Your buildings earn <b>'+income()+' coins per hour</b>. Up to eight hours can accumulate.</p><button id="collect">Collect '+Math.floor(state.bank)+' idle coins</button><p class="muted">Higher training tiers improve XP and town income.</p></section>';
+if(tab==='town'){html+=characterCard();html+='<section class="card"><div class="row"><div><span class="anime-tag">Town Progress</span><h2>'+townTitle()+'</h2></div><b class="level-badge">Town Level '+townLevel()+'</b></div><progress max="26" value="'+townLevel()+'" aria-label="Town level progress"></progress><div class="detail-stats"><div><b>+'+townXpBonus()+'%</b><span>Check-in XP</span></div><div><b>+'+townGoldBonus()+'%</b><span>Passive gold</span></div></div><p class="muted">Every Town Level grants +2% check-in XP and +2% passive gold. '+(townLevel()<26?'Next level: +'+townXpBonus(townLevel()+1)+'% XP and +'+townGoldBonus(townLevel()+1)+'% gold.':'Maximum Town Level reached!')+'</p></section>';html+=village();html+='<section class="card collect-card"><h2>Welcome to your town</h2><p>Your buildings earn <b>'+income()+' coins per hour</b>. Up to eight hours can accumulate.</p><button id="collect">Collect '+Math.floor(state.bank)+' idle coins</button><p class="muted">Higher training tiers improve XP and town income.</p></section>';
 html+='<p class="muted">Training facilities are game upgrades. Continue following your personal activity plan.</p><section class="card tools"><h2>Your adventure</h2><p class="muted">Progress stays in this browser on this device. Export before switching devices or clearing browser data.</p><button id="export">Export save</button> <label><input id="import" type="file" accept=".json,application/json" style="max-width:100%;margin-top:14px" aria-label="Import save backup"></label><button id="restart" class="restart wide">Start a new adventure · reset progress</button></section>';}
 if(tab==='building'){
 const i=selectedBuilding,s=SKILLS[i],x=state.skills[i],t=x.tier;
@@ -183,12 +186,12 @@ if(b.id==='back-town'){tab='town';render();window.scrollTo(0,0);}
 if(b.dataset.tab){tab=b.dataset.tab;draft=[];render();window.scrollTo(0,0);}
 if(b.dataset.score!==undefined){draft[Number(b.dataset.skill)]=Number(b.dataset.score);render();}
 if(b.id==='collect'){accrue();let n=Math.floor(state.bank);state.bank-=n;state.coins+=n;render();if(n>0)reward('+'+n+' coins');notify('Collected '+n+' coins.');}
-if(b.dataset.upgrade!==undefined){accrue();let s=state.skills[Number(b.dataset.upgrade)],cost=COSTS[s.tier+1];if(s.tier<5&&state.coins>=cost){state.coins-=cost;s.tier++;render();reward('Training upgraded!');notify('Training upgraded! Future check-ins earn more XP.');}}
+if(b.dataset.upgrade!==undefined){accrue();let s=state.skills[Number(b.dataset.upgrade)],cost=COSTS[s.tier+1];if(s.tier<5&&state.coins>=cost){state.coins-=cost;s.tier++;render();reward('Town Level '+townLevel()+'!');notify('Town Level increased! Passive bonuses are now +'+townXpBonus()+'% XP and +'+townGoldBonus()+'% gold.');}}
 if(b.dataset.saveSkill!==undefined){
 const i=Number(b.dataset.saveSkill);if(!Number.isInteger(i)||i<0||i>=SKILLS.length)return;
 const existing=dailyEntry();if(existing&&Number.isInteger(existing.scores[i])){notify(SKILLS[i].name+' has already been checked in today. '+resetText());render();return;}
 const score=draft[i];if(!Number.isInteger(score)||score<0||score>5)return;
-const rate=RATES[state.skills[i].tier],before=level(state.skills[i].xp),baseXp=score*rate,xpBonus=equippedXpBonus(),earned=Math.ceil(baseXp*(1+xpBonus/100)),coins=score*2;
+const rate=RATES[state.skills[i].tier],before=level(state.skills[i].xp),baseXp=score*rate,equipmentBonus=equippedXpBonus(),townBonus=townXpBonus(),xpBonus=equipmentBonus+townBonus,earned=Math.ceil(baseXp*(1+xpBonus/100)),coins=score*2;
 const entry=existing||{scores:[null,null,null,null,null],rates:[null,null,null,null,null]};
 entry.scores[i]=score;entry.rates[i]=rate;state.days[day()]=entry;state.skills[i].xp+=earned;state.coins+=coins;draft[i]=null;render();
 if(earned>0)reward('+'+earned+' XP · +'+coins+' 🪙');notify(SKILLS[i].name+' check-in saved.'+(xpBonus?' Equipment bonus: +'+xpBonus+'% XP.':'')+' '+resetText());queueLevels(i,before,level(state.skills[i].xp));
