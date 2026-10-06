@@ -92,7 +92,7 @@ const SKILLS=[
 ];
 const SKILL_DISPLAY_ORDER=[4,3,2,1,0];
 const TIERS=['Starter','Basic','Improved','Advanced','Elite','Master'];
-const RATES=[1,3,6,12,20,35], COSTS=[0,15,400,1500,5000,15000];
+const RATES=[1,3,6,12,20,35], COSTS=[0,30,100,300,750,1500];
 const KEY='fitville-v1', CAP=8*60*60*1000;
 const DEV_PARAMS=new URLSearchParams(location.search),DEV_REQUESTED=DEV_PARAMS.has('dev')||DEV_PARAMS.get('test')==='1',DEV_BACKUP='fitville-dev-backup';
 let DEV=DEV_REQUESTED||sessionStorage.getItem('fitville-dev-active')==='1';
