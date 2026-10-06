@@ -225,7 +225,7 @@ function render(){
 }
 
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-if(b.id==='wallet'){accrue();let n=Math.floor(state.bank);if(n>0){state.bank-=n;state.coins+=n;render();reward('+'+n+' coins');notify('Collected '+n+' town gold.');}return;}
+if(b.id==='wallet'){accrue();let n=Math.floor(state.bank);if(n>0){state.bank-=n;state.coins+=n;save();renderHUD();reward('+'+n+' coins');notify('Collected '+n+' town gold.');}return;}
 if(b.id==='recovery-reload'){location.reload();return;}
 if(DEV&&b.id==='dev-toggle'){document.getElementById('dev-tools').hidden=true;document.getElementById('dev-open').hidden=false;return;}
 if(DEV&&b.id==='dev-open'){document.getElementById('dev-tools').hidden=false;document.getElementById('dev-open').hidden=true;return;}
@@ -287,4 +287,4 @@ document.querySelector('header>div').appendChild(topNav);
 topNav.querySelectorAll('button').forEach(b=>{const label=b.textContent.trim();b.setAttribute('aria-label',label);b.title=label;});
 document.getElementById('check-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.currentTarget.close();}});
 
-setupDevUI();try{render();}catch(err){console.error('Fitville startup error',err);document.getElementById('view').innerHTML='<section class="card"><h2>Fitville needs a quick refresh</h2><p>The game hit a startup error, but your save is still stored on this device.</p><p class="muted">Error: '+safeText(err&&err.message?err.message:'Unknown startup error')+'</p><button id="recovery-reload" class="wide">Reload Fitville</button></section>';document.querySelector('nav').hidden=true;}setInterval(()=>{if((tab==='town'||tab==='check')&&document.visibilityState==='visible')render();},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){draft=[];render();}});window.addEventListener('pagehide',()=>{accrue();save();});
+setupDevUI();try{render();}catch(err){console.error('Fitville startup error',err);document.getElementById('view').innerHTML='<section class="card"><h2>Fitville needs a quick refresh</h2><p>The game hit a startup error, but your save is still stored on this device.</p><p class="muted">Error: '+safeText(err&&err.message?err.message:'Unknown startup error')+'</p><button id="recovery-reload" class="wide">Reload Fitville</button></section>';document.querySelector('nav').hidden=true;}setInterval(()=>{if((tab==='town'||tab==='check')&&document.visibilityState==='visible'){accrue();renderHUD();save();}},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){draft=[];accrue();renderHUD();save();}});window.addEventListener('pagehide',()=>{accrue();save();});
