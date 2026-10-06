@@ -224,7 +224,7 @@ const unlocked=ITEMS.filter(x=>w.owned.includes(x.id));html+='<section class="ca
 for(let i=0;i<5;i++)html+='<section class="card crown-unlock">'+crown(i)+'<h3>'+CROWNS[i]+'</h3><p class="muted">'+(level(state.skills[i].xp)===99?'Earned through '+SKILLS[i].name+' mastery. · +10% check-in XP while equipped.':'Unlock at '+SKILLS[i].name+' level 99. · +10% check-in XP.')+'</p>'+(level(state.skills[i].xp)===99?'<button data-crown="'+i+'">'+(w.equipped.hat==='crown-'+i?'Unequip':'Equip crown')+'</button>':'<span class="pill">Locked</span>')+'</section>';}
 return html;}
 
-function render(){accrue();awardAchievements();document.getElementById('wallet').innerHTML='<span class="gold-coin" aria-label="gold coin"></span> '+Math.floor(state.coins).toLocaleString()+' gold';document.getElementById('total').textContent='✦ '+state.skills.reduce((n,s)=>n+s.xp,0).toLocaleString()+' XP';
+function render(){accrue();awardAchievements();document.getElementById('wallet').innerHTML='<span class="gold-coin" aria-label="gold coin"></span> '+Math.floor(state.coins).toLocaleString()+' gold';const overallXp=state.skills.reduce((n,s)=>n+s.xp,0),adventurerLevel=level(overallXp),xpDisplay=document.getElementById('total');xpDisplay.textContent='✦ Lv '+adventurerLevel+' · '+overallXp.toLocaleString()+(adventurerLevel<99?' / '+XP[adventurerLevel+1].toLocaleString()+' XP':' XP · MAX');xpDisplay.title=adventurerLevel<99?'Combined skill XP · '+(XP[adventurerLevel+1]-overallXp).toLocaleString()+' XP to adventurer level '+(adventurerLevel+1):'Adventurer level 99 reached';
 document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===(tab==='building'?'town':tab)));
 let html='';
 
