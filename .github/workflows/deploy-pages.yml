@@ -28,7 +28,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          convert assets/fitville-crossroads.png -strip -interlace Plane -quality 82 assets/fitville-crossroads-mobile.jpg
+          convert assets/fitville-crossroads.png -resize '960x960>' -strip -interlace Plane -sampling-factor 4:2:0 -quality 76 assets/fitville-crossroads-mobile.jpg
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload site
