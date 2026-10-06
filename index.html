@@ -44,6 +44,25 @@ nav button[aria-selected=true]{background:radial-gradient(circle at 35% 25%,#fff
 nav button:focus-visible{outline:3px solid #fff3a5;outline-offset:3px}
 main{padding-top:10px}
 @media(max-width:420px){header{padding:6px 9px 7px}header>div{gap:3px 6px}header h1{font-size:16px;max-width:115px}.stats>span{font-size:10px;padding:2px 6px}nav{gap:5px}nav button{width:31px;height:31px;min-height:31px}nav button span{font-size:17px}}
+
+/* Full-screen town home */
+body.map-home{overflow:hidden;background:#6edf3e}
+body.map-home header{position:relative;z-index:8;border-radius:0;margin:0}
+body.map-home main{max-width:none;margin:0;padding:0;width:100%;height:calc(100dvh - var(--hud-height,76px));position:relative;overflow:hidden}
+body.map-home .town-heading,body.map-home .map-caption{display:none}
+body.map-home .town-hero{height:100%;width:100%;margin:0}
+body.map-home .town-map{height:100%;width:100%;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none;margin:0}
+body.map-home .map-building{width:clamp(90px,26vw,220px)}
+body.map-home .map-building:nth-of-type(1){left:8%;top:4%}
+body.map-home .map-building:nth-of-type(2){right:8%;top:4%}
+body.map-home .map-building:nth-of-type(3){left:5%;top:39%}
+body.map-home .map-building:nth-of-type(4){right:5%;top:39%}
+body.map-home .map-building:nth-of-type(5){left:50%;top:auto;bottom:3%;transform:translateX(-50%)}
+body.map-home .map-building:nth-of-type(5):hover{transform:translateX(-50%) translateY(-3px)}
+body.map-home .town-avatar{top:47%;width:clamp(58px,9vw,90px)}
+body.map-home .town-avatar-name{top:59%}
+body.map-home #collect{position:absolute;z-index:6;bottom:12px;left:12px;width:auto;max-width:42%;margin:0!important;padding:10px 13px;font-size:12px;border:2px solid #fff4c2;border-radius:999px;background:#b77b20;box-shadow:0 3px 10px #2345}
+@media(orientation:landscape) and (max-height:600px){body.map-home .map-building{width:clamp(75px,18vh,125px)}body.map-home .town-avatar{width:48px}body.map-home .town-avatar-name{top:64%}}
 </style></head><body>
 <header><div><div class="muted">YOUR EVERYDAY ADVENTURE</div><h1>Fitville LifeRPG</h1><p class="muted">Small habits. A growing town.</p><div class="stats"><span id="wallet"></span><span id="total"></span></div></div></header>
 <div id="dev-tools" hidden style="position:fixed;z-index:9998;top:12px;right:12px;max-width:360px;width:calc(100% - 24px);background:#fff1f1;border:3px solid #d94a4a;border-radius:18px;padding:14px;box-shadow:0 10px 30px #0003;max-height:85vh;overflow:auto">
@@ -224,15 +243,13 @@ const unlocked=ITEMS.filter(x=>w.owned.includes(x.id));html+='<section class="ca
 for(let i=0;i<5;i++)html+='<section class="card crown-unlock">'+crown(i)+'<h3>'+CROWNS[i]+'</h3><p class="muted">'+(level(state.skills[i].xp)===99?'Earned through '+SKILLS[i].name+' mastery. · +10% check-in XP while equipped.':'Unlock at '+SKILLS[i].name+' level 99. · +10% check-in XP.')+'</p>'+(level(state.skills[i].xp)===99?'<button data-crown="'+i+'">'+(w.equipped.hat==='crown-'+i?'Unequip':'Equip crown')+'</button>':'<span class="pill">Locked</span>')+'</section>';}
 return html;}
 
-function render(){accrue();awardAchievements();document.getElementById('wallet').innerHTML='<span class="gold-coin" aria-label="gold coin"></span> '+Math.floor(state.coins).toLocaleString()+' gold';const overallXp=state.skills.reduce((n,s)=>n+s.xp,0),adventurerLevel=level(overallXp),xpDisplay=document.getElementById('total');xpDisplay.textContent='✦ Lv '+adventurerLevel+' · '+overallXp.toLocaleString()+(adventurerLevel<99?' / '+XP[adventurerLevel+1].toLocaleString()+' XP':' XP · MAX');xpDisplay.title=adventurerLevel<99?'Combined skill XP · '+(XP[adventurerLevel+1]-overallXp).toLocaleString()+' XP to adventurer level '+(adventurerLevel+1):'Adventurer level 99 reached';
+function render(){document.body.classList.toggle('map-home',tab==='town'&&!!state.character);accrue();awardAchievements();document.getElementById('wallet').innerHTML='<span class="gold-coin" aria-label="gold coin"></span> '+Math.floor(state.coins).toLocaleString()+' gold';const overallXp=state.skills.reduce((n,s)=>n+s.xp,0),adventurerLevel=level(overallXp),xpDisplay=document.getElementById('total');xpDisplay.textContent='✦ Lv '+adventurerLevel+' · '+overallXp.toLocaleString()+(adventurerLevel<99?' / '+XP[adventurerLevel+1].toLocaleString()+' XP':' XP · MAX');xpDisplay.title=adventurerLevel<99?'Combined skill XP · '+(XP[adventurerLevel+1]-overallXp).toLocaleString()+' XP to adventurer level '+(adventurerLevel+1):'Adventurer level 99 reached';
 document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===(tab==='building'?'town':tab)));
 let html='';
 
 if(!state.character){document.getElementById('view').innerHTML=creator();document.querySelector('nav').hidden=true;return;}document.querySelector('nav').hidden=false;
 if(!storageOK)html+='<p class="card">Device saving is unavailable or an old save could not be loaded. Export a backup below to preserve your progress.</p>';
 if(tab==='town'){const todayEntry=dailyEntry(),remainingChecks=5-checkedCount(todayEntry),q=questState(),today=day(),wk=weekKey(),wp=weeklyProgress(),claimed=q.weekly[wk]||{},claimableDaily=checkedCount(todayEntry)>0&&!q.daily[today],claimableWeekly=WEEKLY_QUESTS.filter(x=>wp[x.metric]>=x.goal&&!claimed[x.id]).length,chestReady=q.chest.ready,upgradeReady=state.skills.filter(s=>s.tier<5&&state.coins>=COSTS[s.tier+1]).length;
-html+='<div class="home-status"><div><b>'+(5-remainingChecks)+'/5</b><span>Today</span></div><div><b>'+townLevel()+'</b><span>Town Level</span></div><div><b>'+upgradeReady+'</b><span>Upgrades Ready</span></div></div>';
-html+='<div class="quick-actions"><button class="primary-action" data-tab="check">'+(remainingChecks?'✓ Check In · '+remainingChecks+' left':'✓ Today Complete')+'</button><button data-tab="quests">📜 '+(claimableDaily+claimableWeekly+chestReady?((claimableDaily?1:0)+claimableWeekly+chestReady)+' reward'+(((claimableDaily?1:0)+claimableWeekly+chestReady)!==1?'s':'')+' ready':'Quests')+'</button></div>';
 if(Math.floor(state.bank)>0)html+='<button id="collect" class="wide" style="margin-bottom:14px">Collect '+Math.floor(state.bank)+' gold from town</button>';
 html+=village();
 }
@@ -316,6 +333,7 @@ function openBuildingCheck(i){
  document.getElementById('check-content').innerHTML='<div class="row"><h2 id="check-heading">'+s.icon+' '+s.name+'</h2><button id="check-close" class="popup-close" aria-label="Close check-in">×</button></div><div class="popup-house">'+house(i,x.tier)+'</div><p class="muted">'+s.building+' · Building level '+(x.tier+1)+' · Skill level '+level(x.xp)+'</p>'+(done?'<div class="saved-score">✓ Checked in today · '+entry.scores[i]+'/5</div><p class="muted">'+resetText()+'</p>':'<p>'+s.hint+'</p><p class="muted">Tap your score to save today’s check-in. Planned rest counts.</p><div class="scores" role="group" aria-label="'+s.name+' score">'+[0,1,2,3,4,5].map(v=>'<button data-quick-score="'+v+'" data-skill="'+i+'">'+v+'</button>').join('')+'</div><div class="score-labels"><span>None</span><span>Met goal</span></div>')+'<button id="check-upgrade" class="wide popup-upgrade">View building & upgrades</button>';
  document.getElementById('check-dialog').showModal();
 }
+const headerResize=new ResizeObserver(entries=>{document.documentElement.style.setProperty('--hud-height',entries[0].target.getBoundingClientRect().height+'px');});headerResize.observe(document.querySelector('header'));
 const topNav=document.querySelector('nav');
 document.querySelector('header>div').appendChild(topNav);
 topNav.querySelectorAll('button').forEach(b=>{const label=b.textContent.trim();b.setAttribute('aria-label',label);b.title=label;});
