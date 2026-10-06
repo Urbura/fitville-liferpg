@@ -107,9 +107,9 @@ body.map-home .scene-skill-0{left:36%;bottom:2%;width:28%;height:29%}
   body.map-home .town-scene{width:100%;height:100%;object-fit:contain;object-position:center top;background:#6fdc42}
 }
 /* Exact illustrated source geometry */
-body.map-home .town-map.illustrated-town{height:auto!important;width:100%!important;aspect-ratio:480/407!important}
+body.map-home .town-map.illustrated-town{height:auto!important;width:100%!important;aspect-ratio:1/1!important}
 body.map-home .town-scene{width:100%!important;height:100%!important;object-fit:fill!important}
-@media(max-width:600px){body.map-home #view{height:auto;min-height:calc(100dvh - var(--hud-height,76px));overflow:auto}body.map-home .town-hero{height:auto}body.map-home .town-map.illustrated-town{height:auto!important;width:100%!important;aspect-ratio:480/407!important}}
+@media(max-width:600px){body.map-home #view{height:auto;min-height:calc(100dvh - var(--hud-height,76px));overflow:auto}body.map-home .town-hero{height:auto}body.map-home .town-map.illustrated-town{height:auto!important;width:100%!important;aspect-ratio:1/1!important}}
 </style></head><body>
 <header><div><div class="muted">YOUR EVERYDAY ADVENTURE</div><h1>Fitville LifeRPG</h1><p class="muted">Small habits. A growing town.</p><div class="stats"><span id="wallet"></span><span id="total"></span></div></div></header>
 <div id="dev-tools" hidden style="position:fixed;z-index:9998;top:12px;right:12px;max-width:360px;width:calc(100% - 24px);background:#fff1f1;border:3px solid #d94a4a;border-radius:18px;padding:14px;box-shadow:0 10px 30px #0003;max-height:85vh;overflow:auto">
@@ -227,7 +227,7 @@ return '<svg viewBox="0 0 140 110" aria-hidden="true"><ellipse cx="70" cy="99" r
 function village(){
 const l=townLevel();
 const zones=SKILL_DISPLAY_ORDER.map(i=>{const s=SKILLS[i],t=state.skills[i].tier,ready=t<5&&state.coins>=COSTS[t+1];return '<button class="scene-building scene-skill-'+i+'" data-building="'+i+'" aria-label="'+s.name+' building, level '+(t+1)+' — check in or view upgrades">'+(ready?'<span class="scene-upgrade">UPGRADE!</span>':'')+'<span class="sr-only">'+s.name+' Lv '+(t+1)+'</span></button>';}).join('');
-return '<div class="row town-heading"><div><span class="anime-tag">Home</span><h2>'+townTitle()+'</h2></div><span class="pill">Town '+l+' / 26</span></div><div class="town-hero"><div class="town-map illustrated-town" aria-label="Fitville illustrated village"><img class="town-scene" src="assets/fitville-town-lv1.webp" alt="Illustrated Fitville village with five skill buildings">'+zones+'</div></div><p class="map-caption">Tap a building to check in or view upgrades</p>';
+return '<div class="row town-heading"><div><span class="anime-tag">Home</span><h2>'+townTitle()+'</h2></div><span class="pill">Town '+l+' / 26</span></div><div class="town-hero"><div class="town-map illustrated-town" aria-label="Fitville illustrated village"><img class="town-scene" src="assets/Fantasy RPG Village Crossroads Map.png" alt="Illustrated Fitville village with five skill buildings">'+zones+'</div></div><p class="map-caption">Tap a building to check in or view upgrades</p>';
 }
 function reward(text){let el=document.createElement('div');el.className='reward';el.textContent=text;document.body.append(el);setTimeout(()=>el.remove(),1900);}
 
