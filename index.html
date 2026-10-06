@@ -309,7 +309,7 @@ let html='';
 if(!state.character){document.getElementById('view').innerHTML=creator();document.querySelector('nav').hidden=true;return;}document.querySelector('nav').hidden=false;
 if(!storageOK)html+='<p class="card">Device saving is unavailable or an old save could not be loaded. Export a backup below to preserve your progress.</p>';
 if(tab==='town'){const todayEntry=dailyEntry(),remainingChecks=5-checkedCount(todayEntry),q=questState(),today=day(),wk=weekKey(),wp=weeklyProgress(),claimed=q.weekly[wk]||{},claimableDaily=checkedCount(todayEntry)>0&&!q.daily[today],claimableWeekly=WEEKLY_QUESTS.filter(x=>wp[x.metric]>=x.goal&&!claimed[x.id]).length,chestReady=q.chest.ready,upgradeReady=state.skills.filter(s=>s.tier<5&&state.coins>=COSTS[s.tier+1]).length;
-if(Math.floor(state.bank)>0)html+='<button id="collect" class="wide" style="margin-bottom:14px">Collect '+Math.floor(state.bank)+' gold from town</button>';
+
 html+=village();
 }
 if(tab==='settings'){html+='<button class="back-button" data-tab="town">← Back to Town</button><section class="card tools"><h2>⚙ Settings</h2><p class="muted">Progress stays in this browser. Export before switching devices or clearing browser data.</p><button id="export">Export save</button><p><label>Import save backup<br><input id="import" type="file" accept=".json,application/json" style="max-width:100%;margin-top:10px" aria-label="Import save backup"></label></p><button id="restart" class="restart wide">Start a new adventure · reset progress</button></section>';}
