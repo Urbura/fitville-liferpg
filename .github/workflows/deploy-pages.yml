@@ -24,6 +24,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Optimize town background for mobile
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          convert assets/fitville-crossroads.png -strip -interlace Plane -quality 82 assets/fitville-crossroads-mobile.jpg
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload site
