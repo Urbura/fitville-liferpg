@@ -117,6 +117,17 @@ body.map-home .town-hero{width:100%!important;height:auto!important;margin:0!imp
 body.map-home .town-map.illustrated-town{position:relative!important;width:100%!important;height:auto!important;aspect-ratio:1/1!important;overflow:hidden!important;background:#6fdc42!important}
 body.map-home .town-map.illustrated-town .town-scene{position:absolute!important;inset:0!important;display:block!important;width:100%!important;height:100%!important;max-width:none!important;object-fit:contain!important;object-position:center center!important;z-index:1!important;opacity:1!important;visibility:visible!important}
 body.map-home .scene-building{z-index:3!important}
+
+/* Full-screen mobile town map */
+@media(max-width:600px){
+  body.map-home{overflow:hidden!important}
+  body.map-home main{height:calc(100dvh - var(--hud-height,76px))!important;min-height:0!important;overflow:hidden!important}
+  body.map-home #view{height:100%!important;min-height:0!important;overflow:hidden!important}
+  body.map-home .town-hero{position:absolute!important;inset:0!important;width:100%!important;height:100%!important}
+  body.map-home .town-map.illustrated-town{width:100%!important;height:100%!important;aspect-ratio:auto!important;margin:0!important}
+  body.map-home .town-map.illustrated-town .town-scene{width:100%!important;height:100%!important;object-fit:cover!important;object-position:center center!important}
+  body.map-home .town-heading,body.map-home .map-caption{display:none!important}
+}
 </style></head><body>
 <header><div><div class="muted">YOUR EVERYDAY ADVENTURE</div><h1>Fitville LifeRPG</h1><p class="muted">Small habits. A growing town.</p><div class="stats"><span id="wallet"></span><span id="total"></span></div></div></header>
 <div id="dev-tools" hidden style="position:fixed;z-index:9998;top:12px;right:12px;max-width:360px;width:calc(100% - 24px);background:#fff1f1;border:3px solid #d94a4a;border-radius:18px;padding:14px;box-shadow:0 10px 30px #0003;max-height:85vh;overflow:auto">
