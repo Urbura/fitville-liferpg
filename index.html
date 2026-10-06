@@ -29,6 +29,21 @@ main{padding-top:14px;padding-bottom:24px}
 #check-dialog .popup-close{background:#d4edff;color:#075fa5;min-width:44px;padding:7px 12px}
 #check-dialog .popup-upgrade{margin-top:16px;background:#e0efff;color:#075fa5}
 @media(max-width:420px){header>div{gap:5px}header h1{font-size:18px}.stats span{font-size:10px;padding:6px}.stats{gap:3px}nav button{width:32px;height:32px;min-height:32px}}
+
+/* Compact mobile RPG header with circular menu controls */
+header{padding:7px 12px 8px;border-radius:0 0 15px 15px;border-bottom:2px solid #9de1ff;background:linear-gradient(110deg,#087bd9,#29b5f1);box-shadow:0 3px 12px #0869ac25}
+header>div{max-width:900px;gap:4px 10px;align-items:center}
+header h1{grid-row:1 / 3;align-self:center;font-size:clamp(16px,3.4vw,24px);line-height:1.1;color:#fff;text-shadow:0 2px 2px #07568b60;letter-spacing:.2px}
+.stats{align-items:center;gap:5px}
+.stats>span{border:1px solid #d9f4ff90;border-radius:999px;background:#07568b55;box-shadow:inset 0 1px 3px #033d6d30;padding:3px 8px;font-weight:700;font-size:11px;line-height:16px}
+nav{gap:7px;align-items:center}
+nav button{width:35px;height:35px;min-height:35px;border-radius:50%;padding:0;display:grid;place-items:center;border:2px solid #e3f7ff;background:radial-gradient(circle at 35% 25%,#f7fdff,#c9eaff 60%,#87c8ee);color:#165a88;box-shadow:0 2px 3px #07568b55,inset 0 1px 2px #fff;transition:transform .15s,box-shadow .15s}
+nav button span{font-size:19px;line-height:1;filter:drop-shadow(0 1px 0 #fff)}
+nav button:hover{transform:translateY(-1px);box-shadow:0 3px 7px #07568b55}
+nav button[aria-selected=true]{background:radial-gradient(circle at 35% 25%,#fffce4,#ffe58b 65%,#efbc47);border-color:#fff6c9;color:#785313;box-shadow:0 0 0 1px #c29235,0 2px 5px #07568b44}
+nav button:focus-visible{outline:3px solid #fff3a5;outline-offset:3px}
+main{padding-top:10px}
+@media(max-width:420px){header{padding:6px 9px 7px}header>div{gap:3px 6px}header h1{font-size:16px;max-width:115px}.stats>span{font-size:10px;padding:2px 6px}nav{gap:5px}nav button{width:31px;height:31px;min-height:31px}nav button span{font-size:17px}}
 </style></head><body>
 <header><div><div class="muted">YOUR EVERYDAY ADVENTURE</div><h1>Fitville LifeRPG</h1><p class="muted">Small habits. A growing town.</p><div class="stats"><span id="wallet"></span><span id="total"></span></div></div></header>
 <div id="dev-tools" hidden style="position:fixed;z-index:9998;top:12px;right:12px;max-width:360px;width:calc(100% - 24px);background:#fff1f1;border:3px solid #d94a4a;border-radius:18px;padding:14px;box-shadow:0 10px 30px #0003;max-height:85vh;overflow:auto">
