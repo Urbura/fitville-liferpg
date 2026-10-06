@@ -13,7 +13,7 @@ nav[hidden]{display:none}body{background:linear-gradient(145deg,#d8f3ff,#eefbff)
 <header><div><div class="muted">YOUR EVERYDAY ADVENTURE</div><h1>Fitville LifeRPG</h1><p class="muted">Small habits. A growing town.</p><div class="stats"><span id="wallet"></span><span id="total"></span></div></div></header>
 <div id="dev-tools" hidden style="position:fixed;z-index:9998;top:12px;right:12px;max-width:360px;width:calc(100% - 24px);background:#fff1f1;border:3px solid #d94a4a;border-radius:18px;padding:14px;box-shadow:0 10px 30px #0003;max-height:85vh;overflow:auto">
 <div class="row"><b>🛠 TEST MODE</b><button id="dev-toggle" aria-label="Close test tools">−</button></div>
-<div id="dev-body"><p class="muted">Preview progression without waiting.</p><h3>Town</h3><div class="choices"><button data-dev-town="1">1</button><button data-dev-town="5">5</button><button data-dev-town="10">10</button><button data-dev-town="15">15</button><button data-dev-town="20">20</button><button data-dev-town="26">26</button></div><button class="wide" id="dev-coins">Add 10,000 <span class="gold-coin" aria-label="gold coin"></span></button><button class="wide" id="dev-restore">Restore Pre-Test Save</button></div></div>
+<div id="dev-body"><p class="muted"><b>Safe test session.</b> Your normal save was backed up when Developer Mode opened.</p><h3>Preview Town Level</h3><div class="choices"><button data-dev-town="1">1</button><button data-dev-town="5">5</button><button data-dev-town="10">10</button><button data-dev-town="15">15</button><button data-dev-town="20">20</button><button data-dev-town="26">26</button></div><button class="wide" id="dev-coins">Add 10,000 <span class="gold-coin" aria-label="gold coin"></span></button><button class="wide" id="dev-restore">Restore Original Save</button><button class="wide" id="dev-exit">Exit Developer Mode</button></div></div>
 <button id="dev-open" hidden style="position:fixed;z-index:9997;top:12px;right:12px;background:#d94a4a;color:white;border-radius:999px;padding:10px 14px;font-weight:900">🛠 TEST MODE</button>
 <main id="view"></main><dialog id="level-dialog" aria-labelledby="level-heading"><div id="fireworks" aria-hidden="true"></div><div id="level-content"></div><button id="level-next" class="wide">Continue adventure</button></dialog><div id="notice" role="status"></div>
 <nav aria-label="Main navigation"><button data-tab="town"><span aria-hidden="true">⌂</span>Town</button><button data-tab="check"><span aria-hidden="true">✓</span>Check-In</button><button data-tab="quests"><span aria-hidden="true">📜</span>Quests</button><button data-tab="skills"><span aria-hidden="true">✦</span>Skills</button><button data-tab="character"><span aria-hidden="true">☺</span>Character</button></nav>
@@ -28,8 +28,9 @@ const SKILLS=[
 const TIERS=['Starter','Basic','Improved','Advanced','Elite','Master'];
 const RATES=[1,3,6,12,20,35], COSTS=[0,15,400,1500,5000,15000];
 const KEY='fitville-v1', CAP=8*60*60*1000;
-const DEV=new URLSearchParams(location.search).get('dev')==='1',DEV_BACKUP='fitville-dev-backup';
-function setupDevUI(){const panel=document.getElementById('dev-tools'),open=document.getElementById('dev-open');if(!panel||!open)return;panel.hidden=!DEV;open.hidden=true;}
+const DEV_PARAMS=new URLSearchParams(location.search),DEV_REQUESTED=DEV_PARAMS.has('dev')||DEV_PARAMS.get('test')==='1',DEV_BACKUP='fitville-dev-backup';
+let DEV=DEV_REQUESTED||sessionStorage.getItem('fitville-dev-active')==='1';
+function setupDevUI(){const panel=document.getElementById('dev-tools'),open=document.getElementById('dev-open');if(!panel||!open)return;if(DEV){sessionStorage.setItem('fitville-dev-active','1');panel.hidden=false;open.hidden=true;}else{panel.hidden=true;open.hidden=true;}}
 const XP_ANCHORS=[[1,0],[2,7],[10,100],[20,400],[30,1100],[40,3000],[50,8000],[60,20000],[70,50000],[80,110000],[90,210000],[99,350000]];
 const XP=Array(100).fill(0);for(let a=0;a<XP_ANCHORS.length-1;a++){const [l1,x1]=XP_ANCHORS[a],[l2,x2]=XP_ANCHORS[a+1];for(let l=l1;l<=l2;l++){const p=(l-l1)/(l2-l1);XP[l]=Math.round(x1+(x2-x1)*p);}}
 function level(x){let l=1;while(l<99&&x>=XP[l+1])l++;return l;}
@@ -78,7 +79,7 @@ function resetText(){const remaining=Math.max(0,nextReset()-Date.now()),hours=Ma
 function baseIncome(){return 2+state.skills.reduce((n,s)=>n+s.tier*2,0);}
 function income(){return baseIncome()*(1+townGoldBonus()/100);}
 function accrue(){const now=Date.now();state.bank=Math.min(income()*8,state.bank+Math.min(CAP,Math.max(0,now-state.last))/3600000*income());state.last=now;}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true;}catch(e){storageOK=false;notify('Saving is unavailable. Keep this page open or export a backup.');}}
+function save(){if(DEV)return;try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true;}catch(e){storageOK=false;notify('Saving is unavailable. Keep this page open or export a backup.');}}
 function notify(t){document.getElementById('notice').textContent=t;clearTimeout(timer);timer=setTimeout(()=>document.getElementById('notice').textContent='',5000);}
 
 const COLORS=['#7962a6','#4f7836','#267b7d','#ad5b28','#3b6daa'];
@@ -226,9 +227,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
 if(b.id==='recovery-reload'){location.reload();return;}
 if(DEV&&b.id==='dev-toggle'){document.getElementById('dev-tools').hidden=true;document.getElementById('dev-open').hidden=false;return;}
 if(DEV&&b.id==='dev-open'){document.getElementById('dev-tools').hidden=false;document.getElementById('dev-open').hidden=true;return;}
-if(DEV&&b.dataset.devTown!==undefined){let target=Number(b.dataset.devTown),remaining=Math.max(0,target-1);state.skills.forEach(s=>s.tier=0);for(let i=0;i<state.skills.length&&remaining>0;i++){const n=Math.min(5,remaining);state.skills[i].tier=n;remaining-=n;}save();tab='town';render();notify('Test town set to Level '+townLevel()+'.');return;}
-if(DEV&&b.id==='dev-coins'){state.coins+=10000;save();render();reward('+10,000 gold');return;}
-if(DEV&&b.id==='dev-restore'){const raw=sessionStorage.getItem(DEV_BACKUP);if(raw===null){notify('No pre-test backup is available in this session.');return;}if(raw==='__EMPTY__'){localStorage.removeItem(KEY);state=fresh();}else{try{state=JSON.parse(raw);localStorage.setItem(KEY,raw);}catch(err){notify('Could not restore the pre-test save.');return;}}draft=[];tab='town';render();notify('Pre-test save restored. Remove ?dev=1 to return to normal play.');return;}
+if(DEV&&b.dataset.devTown!==undefined){let target=Number(b.dataset.devTown),remaining=Math.max(0,target-1);state.skills.forEach(s=>s.tier=0);for(let i=0;i<state.skills.length&&remaining>0;i++){const n=Math.min(5,remaining);state.skills[i].tier=n;remaining-=n;}tab='town';render();notify('Previewing Town Level '+townLevel()+'. Original save is untouched.');return;}
+if(DEV&&b.id==='dev-coins'){state.coins+=10000;render();reward('+10,000 test gold');return;}
+if(DEV&&b.id==='dev-restore'){const raw=sessionStorage.getItem(DEV_BACKUP);if(raw===null){notify('No original save backup is available in this session.');return;}if(raw==='__EMPTY__'){state=fresh();}else{try{state=JSON.parse(raw);}catch(err){notify('Could not restore the original save.');return;}}draft=[];tab='town';render();notify('Original save restored in the preview.');return;}
+if(DEV&&b.id==='dev-exit'){const raw=sessionStorage.getItem(DEV_BACKUP);if(raw==='__EMPTY__'){localStorage.removeItem(KEY);state=fresh();}else if(raw!==null){try{state=JSON.parse(raw);localStorage.setItem(KEY,raw);}catch(err){notify('Could not restore the original save.');return;}}sessionStorage.removeItem(DEV_BACKUP);sessionStorage.removeItem('fitville-dev-active');DEV=false;const u=new URL(location.href);u.searchParams.delete('dev');u.searchParams.delete('test');history.replaceState(null,'',u.pathname+u.search+u.hash);document.getElementById('dev-tools').hidden=true;document.getElementById('dev-open').hidden=true;draft=[];tab='town';render();notify('Developer Mode closed. Original save restored.');return;}
 if(b.hasAttribute('data-claim-daily')){const q=questState(),today=day();if(checkedCount(dailyEntry())>0&&!q.daily[today]){q.daily[today]=true;state.coins+=5;addChestProgress(1);save();render();reward('+5 gold');notify('Daily quest reward claimed! Chest progress +1.');}return;}
 if(b.hasAttribute('data-open-chest')){const chest=questState().chest;if(chest.ready>0){chest.ready--;chest.opened++;state.coins+=25;save();render();reward('🎁 +25 gold');notify('Treasure chest opened! You found 25 coins.');}return;}
 
