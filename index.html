@@ -158,22 +158,18 @@ const BUILDING_FORMS=[
 ];
 function buildingForm(i,t){return BUILDING_FORMS[i][t];}
 function house(i,t){
+if(i===4){
+ const stage=Math.max(0,Math.min(5,t)), red=['#b83b32','#b6332e','#aa2928','#982323','#8d1e21','#7c171d'][stage];
+ const side=stage>=2?'<rect x="18" y="62" width="28" height="31" rx="4" fill="#ead7b2" stroke="#79543b" stroke-width="2"/><path d="M14 64L32 47L50 64Z" fill="'+red+'" stroke="#6e3a2d" stroke-width="2"/>':'';
+ const stone=stage>=3?'<rect x="96" y="54" width="27" height="40" rx="3" fill="#d7d0c0" stroke="#6f6257" stroke-width="2"/><path d="M92 56L109 38L127 56Z" fill="'+red+'" stroke="#6e3a2d" stroke-width="2"/><path d="M101 68H118M101 77H118" stroke="#b4aa99" stroke-width="2"/>':'';
+ const towers=stage>=4?'<g fill="#d8d0bf" stroke="#6e5c50" stroke-width="2"><rect x="5" y="49" width="17" height="44"/><rect x="118" y="49" width="17" height="44"/></g><g fill="'+red+'" stroke="#6e3a2d" stroke-width="2"><path d="M2 50L14 31L25 50Z"/><path d="M115 50L127 31L138 50Z"/></g><g fill="#d89b35"><circle cx="14" cy="31" r="3"/><circle cx="127" cy="31" r="3"/></g>':'';
+ const grand=stage>=5?'<path d="M52 23L58 9L66 15L70 4L75 15L83 9L88 23Z" fill="#ffd35b" stroke="#9d691d" stroke-width="2"/><path d="M24 95H116V102H24Z" fill="#c9b69b"/><path d="M48 95L70 80L92 95Z" fill="#d4c5aa"/><g fill="#f2b53d"><circle cx="30" cy="78" r="5"/><circle cx="110" cy="78" r="5"/></g>':'';
+ const props=stage>=1?'<g stroke="#49413d" stroke-width="3" stroke-linecap="round"><path d="M12 95H38M17 89V101M33 89V101"/></g>':'';
+ return '<svg viewBox="0 0 140 110" aria-hidden="true"><ellipse cx="70" cy="101" rx="'+(43+stage*3)+'" ry="7" fill="#315c35" opacity=".28"/>'+towers+side+stone+'<rect x="'+(36-stage*2)+'" y="'+(54-stage)+'" width="'+(68+stage*4)+'" height="'+(42+stage)+'" rx="4" fill="'+(stage>=3?'#e6dcc7':'#e8cfaa')+'" stroke="#76533c" stroke-width="2"/><path d="M'+(27-stage*2)+' '+(55-stage)+'L70 '+(22-stage*2)+'L'+(113+stage*2)+' '+(55-stage)+'Z" fill="'+red+'" stroke="#6e382d" stroke-width="3" stroke-linejoin="round"/><path d="M42 55L70 34L98 55" fill="none" stroke="#f1c45a" stroke-width="'+(stage>=4?4:2)+'"/><rect x="61" y="68" width="19" height="28" rx="3" fill="#704b36" stroke="#493326" stroke-width="2"/><rect x="43" y="64" width="12" height="13" rx="2" fill="#9ddcf0"/><rect x="86" y="64" width="12" height="13" rx="2" fill="#9ddcf0"/><rect x="56" y="48" width="29" height="17" rx="2" fill="#f3e3c3" stroke="#8f4b36" stroke-width="2"/><text x="70" y="61" text-anchor="middle" font-size="15">🏋️</text>'+props+grand+'</svg>';
+}
 const c=COLORS[i],roof=['#8871b4','#6e954d','#479a98','#d48550','#588ac2'][i],icon=SKILLS[i].icon;
-const extras=[
- t>=1?'<rect x="91" y="21" width="9" height="25" rx="2" fill="#bd8d68"/>':'',
- t>=2?'<rect x="12" y="58" width="27" height="36" rx="4" fill="#f4dfb9"/><path d="M8 59L25 42L43 59Z" fill="'+roof+'"/>':'',
- t>=3?'<path d="M35 80H106V89H35Z" fill="'+roof+'"/><rect x="108" y="56" width="12" height="38" rx="2" fill="#dbc49a"/><circle cx="20" cy="91" r="8" fill="#51b54c"/><circle cx="122" cy="91" r="8" fill="#51b54c"/>':'',
- t>=4?'<path d="M112 16V59" stroke="#76573f" stroke-width="3"/><path d="M113 17H137L125 26L137 35H113Z" fill="#ffd15d"/><circle cx="22" cy="35" r="6" fill="#ffe476"/><circle cx="124" cy="48" r="5" fill="#ffe476"/>':'',
- t>=5?'<path d="M57 17L62 5L70 12L78 5L83 17Z" fill="#ffd85e" stroke="#a87920" stroke-width="2"/><path d="M18 94Q70 77 123 94" fill="none" stroke="#f3d47b" stroke-width="4"/><circle cx="9" cy="78" r="4" fill="#fff1a8"/><circle cx="132" cy="73" r="4" fill="#fff1a8"/>':''
-].join('');
-const specialty=[
- i===0&&t>=3?'<path d="M18 25Q27 12 38 23Q29 21 25 31Q21 29 18 25Z" fill="#ffe083"/>':'',
- i===1&&t>=3?'<g fill="#ed6f58"><circle cx="17" cy="76" r="4"/><circle cx="126" cy="80" r="4"/></g>':'',
- i===2&&t>=3?'<path d="M12 73Q22 55 32 73Q22 67 12 73Z" fill="#70c97c"/>':'',
- i===3&&t>=3?'<path d="M8 98Q40 79 70 98T132 98" fill="none" stroke="#d6b477" stroke-width="6"/>':'',
- i===4&&t>=3?'<path d="M15 72H35M10 67V77M40 67V77" stroke="#606477" stroke-width="4"/>':''
-].join('');
-return '<svg viewBox="0 0 140 110" aria-hidden="true"><ellipse cx="70" cy="99" rx="'+(42+t*2)+'" ry="8" fill="#628957" opacity=".25"/><rect x="'+(38-t*2)+'" y="'+(52-t)+'" width="'+(64+t*4)+'" height="'+(43+t)+'" rx="5" fill="'+(t>=4?'#fff3d2':'#fff0cf')+'"/><path d="M'+(28-t*2)+' '+(53-t)+'L70 '+(22-t*2)+'L'+(112+t*2)+' '+(53-t)+'Z" fill="'+roof+'" stroke="'+c+'" stroke-width="'+(3+(t>=4?1:0))+'" stroke-linejoin="round"/><rect x="61" y="67" width="19" height="28" rx="5" fill="#866947"/><rect x="44" y="62" width="12" height="14" rx="3" fill="#a9d9e1"/><rect x="85" y="62" width="12" height="14" rx="3" fill="#a9d9e1"/>'+extras+specialty+'<text x="70" y="55" text-anchor="middle" font-size="'+(19+t)+'">'+icon+'</text></svg>';
+const extras=[t>=1?'<rect x="91" y="21" width="9" height="25" rx="2" fill="#bd8d68"/>':'',t>=2?'<rect x="12" y="58" width="27" height="36" rx="4" fill="#f4dfb9"/><path d="M8 59L25 42L43 59Z" fill="'+roof+'"/>':'',t>=3?'<path d="M35 80H106V89H35Z" fill="'+roof+'"/><rect x="108" y="56" width="12" height="38" rx="2" fill="#dbc49a"/><circle cx="20" cy="91" r="8" fill="#51b54c"/><circle cx="122" cy="91" r="8" fill="#51b54c"/>':'',t>=4?'<path d="M112 16V59" stroke="#76573f" stroke-width="3"/><path d="M113 17H137L125 26L137 35H113Z" fill="#ffd15d"/>':'',t>=5?'<path d="M57 17L62 5L70 12L78 5L83 17Z" fill="#ffd85e" stroke="#a87920" stroke-width="2"/>':''].join('');
+return '<svg viewBox="0 0 140 110" aria-hidden="true"><ellipse cx="70" cy="99" rx="'+(42+t*2)+'" ry="8" fill="#628957" opacity=".25"/><rect x="'+(38-t*2)+'" y="'+(52-t)+'" width="'+(64+t*4)+'" height="'+(43+t)+'" rx="5" fill="'+(t>=4?'#fff3d2':'#fff0cf')+'"/><path d="M'+(28-t*2)+' '+(53-t)+'L70 '+(22-t*2)+'L'+(112+t*2)+' '+(53-t)+'Z" fill="'+roof+'" stroke="'+c+'" stroke-width="'+(3+(t>=4?1:0))+'" stroke-linejoin="round"/><rect x="61" y="67" width="19" height="28" rx="5" fill="#866947"/><rect x="44" y="62" width="12" height="14" rx="3" fill="#a9d9e1"/><rect x="85" y="62" width="12" height="14" rx="3" fill="#a9d9e1"/>'+extras+'<text x="70" y="55" text-anchor="middle" font-size="'+(19+t)+'">'+icon+'</text></svg>';
 }
 function village(){const l=townLevel();let extras='';
 if(l>=5)extras+='<g fill="#ffef73"><circle cx="185" cy="195" r="5"/><circle cx="420" cy="190" r="5"/><circle cx="185" cy="420" r="5"/><circle cx="420" cy="420" r="5"/></g><g fill="#ff83a8"><circle cx="198" cy="203" r="4"/><circle cx="405" cy="200" r="4"/><circle cx="205" cy="430" r="4"/><circle cx="398" cy="430" r="4"/></g>';
