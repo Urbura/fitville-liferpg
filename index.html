@@ -128,6 +128,12 @@ body.map-home .scene-building{z-index:3!important}
   body.map-home .town-map.illustrated-town .town-scene{width:100%!important;height:100%!important;object-fit:cover!important;object-position:center center!important}
   body.map-home .town-heading,body.map-home .map-caption{display:none!important}
 }
+
+/* Mobile map edge overscan: prevent green seam above artwork */
+@media(max-width:600px){
+  body.map-home .town-hero{top:-3px!important;height:calc(100% + 6px)!important}
+  body.map-home .town-map.illustrated-town .town-scene{inset:-3px!important;width:calc(100% + 6px)!important;height:calc(100% + 6px)!important;max-width:none!important}
+}
 </style></head><body>
 <header><div><div class="muted">YOUR EVERYDAY ADVENTURE</div><h1>Fitville LifeRPG</h1><p class="muted">Small habits. A growing town.</p><div class="stats"><span id="wallet"></span><span id="total"></span></div></div></header>
 <div id="dev-tools" hidden style="position:fixed;z-index:9998;top:12px;right:12px;max-width:360px;width:calc(100% - 24px);background:#fff1f1;border:3px solid #d94a4a;border-radius:18px;padding:14px;box-shadow:0 10px 30px #0003;max-height:85vh;overflow:auto">
