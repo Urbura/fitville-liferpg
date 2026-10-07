@@ -154,6 +154,33 @@ function render(persist=true){
  document.getElementById('view').innerHTML=html;renderedDay=day();scheduleDailyReset();if(persist)save();
 }
 
+// Apply one daily score. XP remains one point per rating point.
+function recordCheckIn(i,score){
+ if(!Number.isInteger(i)||i<0||i>=SKILLS.length||!Number.isInteger(score)||score<0||score>5)return {status:'invalid'};
+ const key=day(),existing=dailyEntry();
+ if(existing&&Number.isInteger(existing.scores[i]))return {status:'duplicate'};
+ const before=level(state.skills[i].xp);
+ const entry=existing||{scores:Array(SKILLS.length).fill(null),rates:Array(SKILLS.length).fill(null)};
+ entry.scores[i]=score;
+ entry.rates[i]=1;
+ state.days[key]=entry;
+ state.skills[i].xp+=score;
+ return {status:'recorded',earned:score,before,after:level(state.skills[i].xp),state};
+}
+function submitCheckIn(i,score){
+ const result=recordCheckIn(i,score);
+ if(result.status==='invalid')return;
+ document.getElementById('check-dialog').close();
+ if(result.status==='duplicate'){notify(SKILLS[i].name+' is already checked in today.');return;}
+ save();
+ render(false);
+ // A newer shared save can replace this state during saving.
+ if(state!==result.state)return;
+ if(result.earned>0)reward('+'+result.earned+' XP');
+ notify(SKILLS[i].name+' saved · '+score+'/5.');
+ queueLevels(i,result.before,result.after);
+}
+
 function handleTrackerClick(e){const b=e.target.closest('button');if(!b)return;
 if(syncSharedSave())render(false);
 refreshDayIfNeeded();
@@ -170,7 +197,7 @@ if(b.id==='restart'){if(!confirm('Start fresh? This removes all XP and check-ins
 if(b.dataset.building!==undefined){openBuildingCheck(Number(b.dataset.building));return;}
 if(b.dataset.tab){const targetTab=b.dataset.tab;tab=(b.closest('nav')&&tab===targetTab)?'town':targetTab;draft=[];render();window.scrollTo(0,0);return;}
 if(b.id==='check-close'){document.getElementById('check-dialog').close();return;}
-if(b.dataset.quickScore!==undefined){document.getElementById('check-dialog').close();const i=Number(b.dataset.skill),score=Number(b.dataset.quickScore);if(!Number.isInteger(i)||i<0||i>=SKILLS.length||!Number.isInteger(score)||score<0||score>5)return;const existing=dailyEntry();if(existing&&Number.isInteger(existing.scores[i])){notify(SKILLS[i].name+' is already checked in today.');return;}const rate=1,before=level(state.skills[i].xp),baseXp=score*rate,xpBonus=0,earned=Math.ceil(baseXp*(1+xpBonus/100)),coins=score*2;const entry=existing||{scores:[null,null,null,null,null],rates:[null,null,null,null,null]};entry.scores[i]=score;entry.rates[i]=rate;state.days[day()]=entry;state.skills[i].xp+=earned;save();render();if(earned>0)reward('+'+earned+' XP');notify(SKILLS[i].name+' saved · '+score+'/5.');queueLevels(i,before,level(state.skills[i].xp));return;}
+if(b.dataset.quickScore!==undefined){submitCheckIn(Number(b.dataset.skill),Number(b.dataset.quickScore));return;}
 if(b.id==='export'){save();const url=URL.createObjectURL(new Blob([rejectedSave!==null?rejectedSave:JSON.stringify(state,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=(rejectedSave!==null?'fitness-level-up-original-save-':'fitness-level-up-save-')+day()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 }
 document.addEventListener('click',e=>{
