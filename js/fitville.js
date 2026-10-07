@@ -185,7 +185,7 @@ return html;}
 
 function renderHUD(){
  const overallXp=state.skills.reduce((n,s)=>n+s.xp,0),overallLevel=level(overallXp),display=document.getElementById('total');
- display.textContent='✦ Lv '+overallLevel+' · '+overallXp.toLocaleString()+' total XP';
+ display.textContent='✦ Overall Level '+overallLevel+' · '+overallXp.toLocaleString()+' total XP';
  display.title='Combined XP across all five fitness skills';
 }
 
@@ -273,10 +273,13 @@ for(const v of Object.values(s.days)){if(!Array.isArray(v.scores)||v.scores.leng
 if(!confirm('Replace progress on this device with this backup?'))return;state=s;draft=[];render();notify('Backup restored.');}catch(err){notify('This file is not a valid Fitness Level Up save.');}});
 document.getElementById('level-dialog').addEventListener('cancel',e=>{e.preventDefault();nextCelebration();});
 
+const RATING_GUIDANCE=['No progress','Small start','Some progress','About halfway','Mostly met','Goal met'];
 function openBuildingCheck(i){
  if(!Number.isInteger(i)||i<0||i>=SKILLS.length)return;
- const s=SKILLS[i],x=state.skills[i],entry=dailyEntry(),done=entry&&Number.isInteger(entry.scores[i]);
- document.getElementById('check-content').innerHTML='<div class="row"><h2 id="check-heading">'+skillIcon(i)+' '+s.name+'</h2><button id="check-close" class="popup-close" aria-label="Close check-in">×</button></div><p class="muted">Skill level '+level(x.xp)+' · '+titleFor(i,level(x.xp))+'</p>'+(done?'<div class="saved-score">✓ Checked in today · '+entry.scores[i]+'/5</div><p class="muted">'+resetText()+'</p>':'<p>'+s.hint+'</p><p class="muted">Tap your score to save today’s check-in. Planned rest counts.</p><div class="scores" role="group" aria-label="'+s.name+' score">'+[0,1,2,3,4,5].map(v=>'<button data-quick-score="'+v+'" data-skill="'+i+'">'+v+'</button>').join('')+'</div><div class="score-labels"><span>None</span><span>Met goal</span></div>');
+ const s=SKILLS[i],x=state.skills[i],l=level(x.xp),entry=dailyEntry(),done=entry&&Number.isInteger(entry.scores[i]);
+ const maxed=l===99,earned=x.xp-XP[l],needed=maxed?0:XP[l+1]-XP[l],progress=maxed?1:earned/needed,nextTitleLevel=Math.min(99,(Math.floor(l/7)+1)*7);
+ const xpPanel='<section class="popup-progress" aria-label="'+s.name+' experience"><div class="row"><strong>Skill Level '+l+'</strong><span>'+titleFor(i,l)+'</span></div><progress max="1" value="'+progress+'" aria-label="'+s.name+' progress to next level"></progress><div class="row muted"><span>'+x.xp.toLocaleString()+' total XP</span><span>'+(maxed?'Level 99 · MAX':earned.toLocaleString()+' / '+needed.toLocaleString()+' XP this level')+'</span></div><p>'+(maxed?'Mastery achieved — '+CROWNS[i]:(XP[l+1]-x.xp).toLocaleString()+' XP to level '+(l+1))+'</p>'+(maxed?crown(i):'<p class="muted">Next title: <strong>'+titleFor(i,nextTitleLevel)+'</strong> at level '+nextTitleLevel+'</p>')+'</section>';
+ document.getElementById('check-content').innerHTML='<div class="row"><h2 id="check-heading">'+skillIcon(i)+' '+s.name+'</h2><button id="check-close" class="popup-close" aria-label="Close check-in">×</button></div>'+xpPanel+(done?'<div class="saved-score">✓ Checked in today · '+entry.scores[i]+'/5 — '+RATING_GUIDANCE[entry.scores[i]]+'</div><p class="muted">'+resetText()+'</p>':'<p>'+s.hint+'</p><p class="rating-intro">Rate progress toward your own goal. Planned rest or recovery can count as meeting your goal.</p><div class="scores guided-scores" role="group" aria-label="'+s.name+' score">'+RATING_GUIDANCE.map((label,v)=>'<button data-quick-score="'+v+'" data-skill="'+i+'" aria-label="'+v+' out of 5: '+label+'"><strong>'+v+'</strong><span>'+label+'</span></button>').join('')+'</div><p class="muted rating-save-note">Tap a score to save immediately. One check-in per skill each day.</p>');
  document.getElementById('check-dialog').showModal();
 }
 
