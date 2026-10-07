@@ -1064,3 +1064,12 @@ header .stats>span {
   -webkit-mask: url('../assets/icons/settings.svg') center / contain no-repeat;
   mask: url('../assets/icons/settings.svg') center / contain no-repeat;
 }
+
+/* Center the cog independently of the button's hidden text label. */
+nav button[data-tab="settings"] { position: relative; }
+nav button[data-tab="settings"] .settings-icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
