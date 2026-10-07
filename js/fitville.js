@@ -1,3 +1,5 @@
+(()=>{
+try{
 const SKILLS=[
 {name:'Sleep',hint:'Your proposed 5/5 target: 7½–8½ hours of sleep.'},
 {name:'Healthy Eating',hint:'Rate how well you followed your personal eating goals.'},
@@ -12,25 +14,23 @@ function skillIcon(i){return '<span class="skill-symbol" style="--symbol:url(../
 const LEGACY_RATES=[1,3,6,12,20,35];
 // Keep the original storage key and legacy fields so existing progress remains readable.
 const KEY='fitville-v1';
+const sessionFallback=new Map();
+function readSession(key){if(sessionFallback.has(key))return sessionFallback.get(key);try{return sessionStorage.getItem(key);}catch(err){return null;}}
+function writeSession(key,value){sessionFallback.set(key,value);try{sessionStorage.setItem(key,value);}catch(err){}}
+function removeSession(key){sessionFallback.set(key,null);try{sessionStorage.removeItem(key);}catch(err){}}
 const DEV_PARAMS=new URLSearchParams(location.search),DEV_REQUESTED=DEV_PARAMS.has('dev')||DEV_PARAMS.get('test')==='1',DEV_BACKUP='fitville-dev-backup';
-let DEV=DEV_REQUESTED||sessionStorage.getItem('fitville-dev-active')==='1';
-function setupDevUI(){const panel=document.getElementById('dev-tools'),open=document.getElementById('dev-open');if(!panel||!open)return;if(DEV){sessionStorage.setItem('fitville-dev-active','1');panel.hidden=false;open.hidden=true;}else{panel.hidden=true;open.hidden=true;}}
+let DEV=DEV_REQUESTED||readSession('fitville-dev-active')==='1';
+function setupDevUI(){const panel=document.getElementById('dev-tools'),open=document.getElementById('dev-open');if(!panel||!open)return;if(DEV){writeSession('fitville-dev-active','1');panel.hidden=false;open.hidden=true;}else{panel.hidden=true;open.hidden=true;}}
 const XP_ANCHORS=[[1,0],[2,7],[10,100],[20,400],[30,1100],[40,3000],[50,8000],[60,20000],[70,50000],[80,110000],[90,210000],[99,350000]];
 const XP=Array(100).fill(0);for(let a=0;a<XP_ANCHORS.length-1;a++){const [l1,x1]=XP_ANCHORS[a],[l2,x2]=XP_ANCHORS[a+1];for(let l=l1;l<=l2;l++){const p=(l-l1)/(l2-l1);XP[l]=Math.round(x1+(x2-x1)*p);}}
 function level(x){let l=1;while(l<99&&x>=XP[l+1])l++;return l;}
 function fresh(){return{coins:0,skills:SKILLS.map(()=>({xp:0,tier:0})),days:{},last:Date.now(),bank:0};}
-let state=fresh(),storageOK=true,rejectedSave=null,lastSavedRaw=null;
-try{let raw=localStorage.getItem(KEY);lastSavedRaw=raw;if(raw){rejectedSave=raw;let s=JSON.parse(raw);if(!s||!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||!Number.isFinite(s.last)||!Number.isFinite(s.bank))throw Error('Invalid save');state=s;rejectedSave=null;}}catch(e){storageOK=false;}
-// Normalize older saves before any UI or achievement code reads them.
-state.days=(state.days&&typeof state.days==='object')?state.days:{};
-for(const [k,d] of Object.entries(state.days)){
- if(!d||typeof d!=='object'){delete state.days[k];continue;}
- if(!Array.isArray(d.scores))d.scores=[null,null,null,null,null];
- d.scores=Array.from({length:5},(_,i)=>Number.isInteger(d.scores[i])&&d.scores[i]>=0&&d.scores[i]<=5?d.scores[i]:null);
- if(!Array.isArray(d.rates))d.rates=[null,null,null,null,null];
- d.rates=Array.from({length:5},(_,i)=>d.scores[i]===null?null:(Number.isFinite(d.rates[i])?d.rates[i]:LEGACY_RATES[state.skills[i].tier]));
-}
-if(DEV&&!sessionStorage.getItem(DEV_BACKUP)){const existing=localStorage.getItem(KEY);sessionStorage.setItem(DEV_BACKUP,existing===null?'__EMPTY__':existing);}
+let state=fresh(),storageOK=true,storageLoaded=false,startupReady=false,rejectedSave=null,lastSavedRaw=null;
+try{
+ const raw=localStorage.getItem(KEY);lastSavedRaw=raw;storageLoaded=true;
+ if(raw!==null){rejectedSave=raw;state=readSave(raw);rejectedSave=null;}
+}catch(err){storageOK=false;}
+if(DEV&&readSession(DEV_BACKUP)===null&&storageLoaded)writeSession(DEV_BACKUP,lastSavedRaw===null?'__EMPTY__':lastSavedRaw);
 let tab='town',draft=[],timer,renderedDay=null,dailyResetTimer;
 const RESET_UTC_HOUR=9,RESET_UTC_MINUTE=30,RESET_SHIFT=(RESET_UTC_HOUR*60+RESET_UTC_MINUTE)*60*1000;
 function day(now=Date.now()){return new Date(now-RESET_SHIFT).toISOString().slice(0,10);}
@@ -63,16 +63,40 @@ function refreshResetCountdown(){
 }
 
 function validSharedSave(s){
- return s&&Number.isFinite(s.coins)&&s.coins>=0&&Array.isArray(s.skills)&&s.skills.length===5&&s.skills.every(x=>x&&Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)&&s.days&&typeof s.days==='object'&&Number.isFinite(s.last)&&Number.isFinite(s.bank);
+ return s&&Number.isFinite(s.coins)&&s.coins>=0&&Array.isArray(s.skills)&&s.skills.length===5&&s.skills.every(x=>x&&Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)&&s.days&&typeof s.days==='object'&&!Array.isArray(s.days)&&Number.isFinite(s.last)&&Number.isFinite(s.bank);
+}
+function readSave(raw){
+ const s=JSON.parse(raw);
+ if(!validSharedSave(s)||s.bank<0)throw Error('Invalid save');
+ for(const entry of Object.values(s.days)){
+  if(!entry||typeof entry!=='object'||Array.isArray(entry))throw Error('Invalid check-in history');
+  if(entry.scores===undefined)entry.scores=Array(SKILLS.length).fill(null);
+  if(!Array.isArray(entry.scores)||entry.scores.length!==SKILLS.length||!entry.scores.every(n=>n===null||(Number.isInteger(n)&&n>=0&&n<=5)))throw Error('Invalid check-in scores');
+  if(entry.rates===undefined)entry.rates=Array(SKILLS.length).fill(null);
+  if(!Array.isArray(entry.rates))throw Error('Invalid check-in rates');
+  entry.rates=entry.scores.map((score,i)=>{
+   if(score===null)return null;
+   const rate=entry.rates[i];
+   if(rate===null||rate===undefined)return LEGACY_RATES[s.skills[i].tier];
+   if(!Number.isFinite(rate)||rate<0)throw Error('Invalid check-in rate');
+   return rate;
+  });
+ }
+ return s;
+}
+// Explicit import/reset may replace a save only after its current snapshot is readable.
+function prepareReplacement(){
+ try{lastSavedRaw=localStorage.getItem(KEY);storageLoaded=true;return true;}
+ catch(err){storageOK=false;notify('Device saving is blocked. Export your progress before reloading.');return false;}
 }
 function syncSharedSave(){
- if(DEV||rejectedSave!==null)return false;
+ if(DEV||rejectedSave!==null||!storageLoaded)return false;
  try{
   const raw=localStorage.getItem(KEY);
   if(raw===lastSavedRaw)return false;
   if(raw===null){state=fresh();}else{
    let incoming;
-   try{incoming=JSON.parse(raw);if(!validSharedSave(incoming))throw Error('Invalid shared save');}
+   try{incoming=readSave(raw);}
    catch(err){rejectedSave=raw;lastSavedRaw=raw;storageOK=false;return true;}
    state=incoming;
   }
@@ -82,7 +106,8 @@ function syncSharedSave(){
  }catch(err){storageOK=false;return false;}
 }
 function save(){
- if(DEV||rejectedSave!==null)return false;
+ if(!startupReady)return false;
+ if(DEV||rejectedSave!==null||!storageLoaded)return false;
  try{
   if(localStorage.getItem(KEY)!==lastSavedRaw){
    syncSharedSave();render(false);notify('Progress changed in another tab. The latest save has been loaded.');return false;
@@ -172,12 +197,12 @@ function submitCheckIn(i,score){
  if(result.status==='invalid')return;
  document.getElementById('check-dialog').close();
  if(result.status==='duplicate'){notify(SKILLS[i].name+' is already checked in today.');return;}
- save();
+ const persisted=save();
  render(false);
  // A newer shared save can replace this state during saving.
  if(state!==result.state)return;
  if(result.earned>0)reward('+'+result.earned+' XP');
- notify(SKILLS[i].name+' saved · '+score+'/5.');
+ notify(SKILLS[i].name+' · '+score+'/5'+(DEV?' · preview only.':persisted?' · saved.':' · temporary; export a backup to keep this progress.'));
  queueLevels(i,result.before,result.after);
 }
 
@@ -189,11 +214,18 @@ if(DEV&&b.id==='dev-toggle'){document.getElementById('dev-tools').hidden=true;do
 if(DEV&&b.id==='dev-open'){document.getElementById('dev-tools').hidden=false;document.getElementById('dev-open').hidden=true;return;}
 if(DEV&&b.dataset.devLevel!==undefined){const input=document.getElementById('dev-level');if(input)input.value=b.dataset.devLevel;return;}
 if(DEV&&b.id==='dev-set-level'){const select=document.getElementById('dev-skill'),input=document.getElementById('dev-level'),target=Math.max(1,Math.min(99,Math.floor(Number(input&&input.value)||1))),indices=select&&select.value==='all'?[0,1,2,3,4]:[Number(select&&select.value)];for(const i of indices){if(Number.isInteger(i)&&i>=0&&i<5)state.skills[i].xp=XP[target];}render();notify((indices.length===5?'All skills':SKILLS[indices[0]].name)+' set to Level '+target+' for testing.');return;}
-if(DEV&&b.id==='dev-restore'){const raw=sessionStorage.getItem(DEV_BACKUP);if(raw===null){notify('No original save backup is available in this session.');return;}if(raw==='__EMPTY__'){state=fresh();}else{try{state=JSON.parse(raw);}catch(err){notify('Could not restore the original save.');return;}}draft=[];tab='town';render();notify('Original save restored in the preview.');return;}
-if(DEV&&b.id==='dev-exit'){const raw=sessionStorage.getItem(DEV_BACKUP);if(raw==='__EMPTY__'){localStorage.removeItem(KEY);state=fresh();}else if(raw!==null){try{state=JSON.parse(raw);localStorage.setItem(KEY,raw);}catch(err){notify('Could not restore the original save.');return;}}sessionStorage.removeItem(DEV_BACKUP);sessionStorage.removeItem('fitville-dev-active');DEV=false;const u=new URL(location.href);u.searchParams.delete('dev');u.searchParams.delete('test');history.replaceState(null,'',u.pathname+u.search+u.hash);document.getElementById('dev-tools').hidden=true;document.getElementById('dev-open').hidden=true;draft=[];tab='town';render();notify('Developer Mode closed. Original save restored.');return;}
+if(DEV&&b.id==='dev-restore'){const raw=readSession(DEV_BACKUP);if(raw===null){notify('No original save backup is available in this session.');return;}if(raw==='__EMPTY__'){state=fresh();}else{try{state=readSave(raw);}catch(err){notify('Could not restore the original save.');return;}}draft=[];tab='town';render();notify('Original save restored in the preview.');return;}
+if(DEV&&b.id==='dev-exit'){
+ const raw=readSession(DEV_BACKUP);
+ if(raw!==null){try{state=raw==='__EMPTY__'?fresh():readSave(raw);}catch(err){notify('The original save needs recovery. Export it before resetting.');return;}}
+ removeSession(DEV_BACKUP);removeSession('fitville-dev-active');DEV=false;
+ const u=new URL(location.href);u.searchParams.delete('dev');u.searchParams.delete('test');history.replaceState(null,'',u.pathname+u.search+u.hash);
+ setupDevUI();draft=[];tab='town';syncSharedSave();render(false);
+ notify('Developer Mode closed. Original progress preserved.');return;
+}
 
 if(b.id==='level-next'){nextCelebration();return;}
-if(b.id==='restart'){if(!confirm('Start fresh? This removes all XP and check-ins on this device. Export a backup first if you want to keep them.'))return;rejectedSave=null;state=fresh();draft=[];tab='town';save();render();notify('Tracker reset. Every skill starts at 0 XP.');}
+if(b.id==='restart'){if(!confirm('Start fresh? This removes all XP and check-ins on this device. Export a backup first if you want to keep them.'))return;if(!prepareReplacement())return;rejectedSave=null;state=fresh();draft=[];tab='town';const persisted=save();render(false);notify(persisted?'Tracker reset. Every skill starts at 0 XP.':'Progress reset in this page only. Device saving is unavailable.');}
 if(b.dataset.building!==undefined){openBuildingCheck(Number(b.dataset.building));return;}
 if(b.dataset.tab){const targetTab=b.dataset.tab;tab=(b.closest('nav')&&tab===targetTab)?'town':targetTab;draft=[];render();window.scrollTo(0,0);return;}
 if(b.id==='check-close'){document.getElementById('check-dialog').close();return;}
@@ -208,7 +240,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',async e=>{if(e.target.id!=='import'||!e.target.files[0])return;try{let s=JSON.parse(await e.target.files[0].text());if(!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||typeof s.days!=='object'||!Number.isFinite(s.bank)||s.bank<0||!Number.isFinite(s.last))throw Error();
 for(const v of Object.values(s.days)){if(!Array.isArray(v.scores)||v.scores.length!==5||!v.scores.every(n=>n===null||(Number.isInteger(n)&&n>=0&&n<=5))||!Array.isArray(v.rates)||v.rates.length!==5||!v.rates.every((n,i)=>v.scores[i]===null?n===null:LEGACY_RATES.includes(n)))throw Error();}
-if(!confirm('Replace progress on this device with this backup?'))return;state=s;rejectedSave=null;draft=[];render();notify('Backup restored.');}catch(err){notify('This file is not a valid Fitness Level Up save.');}});
+if(!confirm('Replace progress on this device with this backup?'))return;if(!prepareReplacement())return;state=s;rejectedSave=null;draft=[];const persisted=save();render(false);notify(persisted?'Backup restored.':'Backup loaded in this page only. Export before closing; device saving is unavailable.');}catch(err){notify('This file is not a valid Fitness Level Up save.');}});
 document.getElementById('level-dialog').addEventListener('cancel',e=>{e.preventDefault();nextCelebration();});
 
 const RATING_GUIDANCE=['No progress','Small start','Some progress','About halfway','Mostly met','Goal met'];
@@ -221,16 +253,37 @@ function openBuildingCheck(i){
  document.getElementById('check-dialog').showModal();
 }
 
-const headerResize=new ResizeObserver(entries=>{document.documentElement.style.setProperty('--hud-height',entries[0].target.getBoundingClientRect().height+'px');});headerResize.observe(document.querySelector('header'));
-const topNav=document.querySelector('nav');
-document.querySelector('header>div').appendChild(topNav);
-topNav.querySelectorAll('button').forEach(b=>{const label=b.textContent.trim();b.setAttribute('aria-label',label);b.title=label;});
+function updateHeaderHeight(){
+ const header=document.querySelector('header');
+ if(header)document.documentElement.style.setProperty('--hud-height',header.getBoundingClientRect().height+'px');
+}
+const topNav=document.querySelector('nav'),headerContent=document.querySelector('header>div');
+if(topNav&&headerContent){
+ headerContent.appendChild(topNav);
+ topNav.querySelectorAll('button').forEach(b=>{const label=b.textContent.trim();b.setAttribute('aria-label',label);b.title=label;});
+}
+updateHeaderHeight();
+if(typeof ResizeObserver==='function'){
+ try{const observer=new ResizeObserver(updateHeaderHeight);observer.observe(document.querySelector('header'));}
+ catch(err){window.addEventListener('resize',updateHeaderHeight);}
+}else{window.addEventListener('resize',updateHeaderHeight);}
 document.getElementById('check-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.currentTarget.close();}});
-
-setupDevUI();try{render();}catch(err){console.error('Fitness Level Up startup error',err);document.getElementById('view').innerHTML='<section class="card"><h2>Fitness Level Up needs a quick refresh</h2><p>The game hit a startup error, but your save is still stored on this device.</p><p class="muted">Error: '+safeText(err&&err.message?err.message:'Unknown startup error')+'</p><button id="recovery-reload" class="wide">Reload Fitness Level Up</button></section>';document.querySelector('nav').hidden=true;}setInterval(()=>{if(document.visibilityState==='visible'){refreshDayIfNeeded();refreshResetCountdown();renderHUD();}},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(syncSharedSave())render(false);refreshDayIfNeeded();refreshResetCountdown();draft=[];renderHUD();}});window.addEventListener('pagehide',()=>{save();});
+setupDevUI();render(false);startupReady=true;save();
+setInterval(()=>{if(document.visibilityState==='visible'){refreshDayIfNeeded();refreshResetCountdown();renderHUD();}},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(syncSharedSave())render(false);refreshDayIfNeeded();refreshResetCountdown();draft=[];renderHUD();}});window.addEventListener('pagehide',()=>{save();});
 
 window.addEventListener('storage',e=>{
  if((e.key===KEY||e.key===null)&&syncSharedSave()){
   render(false);notify('Progress updated from another tab.');
  }
 });
+
+}catch(err){
+ console.error('Fitness Level Up startup error',err);
+ const view=document.getElementById('view');
+ if(view){
+  view.innerHTML='<section class="card"><h2>Fitness Level Up needs a refresh</h2><p>Startup could not finish. Reload to try again. Avoid clearing browser data if you have progress saved here.</p><button id="startup-reload" class="wide">Reload Fitness Level Up</button></section>';
+  document.getElementById('startup-reload').addEventListener('click',()=>location.reload());
+ }
+ const nav=document.querySelector('nav');if(nav)nav.hidden=true;
+}
+})();
