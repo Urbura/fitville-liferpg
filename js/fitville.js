@@ -104,10 +104,13 @@ const extras=[t>=1?'<rect x="91" y="21" width="9" height="25" rx="2" fill="#bd8d
 return '<svg viewBox="0 0 140 110" aria-hidden="true"><ellipse cx="70" cy="99" rx="'+(42+t*2)+'" ry="8" fill="#628957" opacity=".25"/><rect x="'+(38-t*2)+'" y="'+(52-t)+'" width="'+(64+t*4)+'" height="'+(43+t)+'" rx="5" fill="'+(t>=4?'#fff3d2':'#fff0cf')+'"/><path d="M'+(28-t*2)+' '+(53-t)+'L70 '+(22-t*2)+'L'+(112+t*2)+' '+(53-t)+'Z" fill="'+roof+'" stroke="'+c+'" stroke-width="'+(3+(t>=4?1:0))+'" stroke-linejoin="round"/><rect x="61" y="67" width="19" height="28" rx="5" fill="#866947"/><rect x="44" y="62" width="12" height="14" rx="3" fill="#a9d9e1"/><rect x="85" y="62" width="12" height="14" rx="3" fill="#a9d9e1"/>'+extras+'<text x="70" y="55" text-anchor="middle" font-size="'+(19+t)+'">'+icon+'</text></svg>';
 }
 function village(){
-const l=townLevel();
-const zones=SKILL_DISPLAY_ORDER.map(i=>{const s=SKILLS[i],t=state.skills[i].tier,ready=t<5&&state.coins>=COSTS[t+1];return '<button class="scene-building scene-skill-'+i+'" data-building="'+i+'" aria-label="'+s.name+' building, level '+(t+1)+' — check in or view upgrades">'+(ready?'<span class="scene-upgrade">UPGRADE!</span>':'')+'<span class="sr-only">'+s.name+' Lv '+(t+1)+'</span></button>';}).join('');
-return '<div class="row town-heading"><div><span class="anime-tag">Home</span><h2>'+townTitle()+'</h2></div><span class="pill">Town '+l+' / 26</span></div><div class="town-hero"><div class="town-map illustrated-town" aria-label="Fitville illustrated village"><img class="town-scene" fetchpriority="high" decoding="async" src="assets/fitville-crossroads-mobile.jpg" alt="Illustrated Fitville village with five skill buildings">'+zones+'</div></div><p class="map-caption">Tap a building to check in or view upgrades</p>';
+ const buildings=SKILL_DISPLAY_ORDER.map(i=>{
+  const skill=SKILLS[i],tier=state.skills[i].tier;
+  return '<button class="town-building" data-building="'+i+'" aria-label="'+skill.name+' building, level '+(tier+1)+' — check in or view upgrades"><span class="town-building-art">'+house(i,tier)+'</span><strong>'+skill.name+'</strong><span>Building Lv '+(tier+1)+'</span></button>';
+ }).join('');
+ return '<div class="row town-heading"><h2>'+townTitle()+'</h2><span class="pill">Town '+townLevel()+' / 26</span></div><div class="town-buildings">'+buildings+'</div><p class="map-caption">Tap a building to check in or view upgrades</p>';
 }
+
 function reward(text){let el=document.createElement('div');el.className='reward';el.textContent=text;document.body.append(el);setTimeout(()=>el.remove(),1900);}
 
 
@@ -214,7 +217,7 @@ function renderScreen(){
  return village();
 }
 function render(){
- document.body.classList.toggle('map-home',tab==='town'&&!!state.character);
+ document.body.classList.remove('map-home');
  accrue();awardAchievements();renderHUD();
  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===(tab==='building'?'town':tab)));
  if(!state.character){document.getElementById('view').innerHTML=creator();document.querySelector('nav').hidden=true;return;}
