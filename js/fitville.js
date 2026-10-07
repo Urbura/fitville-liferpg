@@ -18,8 +18,8 @@ const XP_ANCHORS=[[1,0],[2,7],[10,100],[20,400],[30,1100],[40,3000],[50,8000],[6
 const XP=Array(100).fill(0);for(let a=0;a<XP_ANCHORS.length-1;a++){const [l1,x1]=XP_ANCHORS[a],[l2,x2]=XP_ANCHORS[a+1];for(let l=l1;l<=l2;l++){const p=(l-l1)/(l2-l1);XP[l]=Math.round(x1+(x2-x1)*p);}}
 function level(x){let l=1;while(l<99&&x>=XP[l+1])l++;return l;}
 function fresh(){return{coins:0,skills:SKILLS.map(()=>({xp:0,tier:0})),days:{},last:Date.now(),bank:0};}
-let state=fresh(),storageOK=true;
-try{let raw=localStorage.getItem(KEY);if(raw){let s=JSON.parse(raw);if(!s||!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||!Number.isFinite(s.last)||!Number.isFinite(s.bank))throw Error('Invalid save');state=s;}}catch(e){storageOK=false;}
+let state=fresh(),storageOK=true,rejectedSave=null;
+try{let raw=localStorage.getItem(KEY);if(raw){rejectedSave=raw;let s=JSON.parse(raw);if(!s||!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||!Number.isFinite(s.last)||!Number.isFinite(s.bank))throw Error('Invalid save');state=s;rejectedSave=null;}}catch(e){storageOK=false;}
 // Normalize older saves before any UI or achievement code reads them.
 state.days=(state.days&&typeof state.days==='object')?state.days:{};
 for(const [k,d] of Object.entries(state.days)){
@@ -62,7 +62,7 @@ function resetText(){const remaining=Math.max(0,nextReset()-Date.now()),hours=Ma
 function baseIncome(){return 2+state.skills.reduce((n,s)=>n+s.tier*2,0);}
 function income(){return baseIncome()*(1+townGoldBonus()/100);}
 function accrue(){state.last=Date.now();}
-function save(){if(DEV)return;try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true;}catch(e){storageOK=false;notify('Saving is unavailable. Keep this page open or export a backup.');}}
+function save(){if(DEV||rejectedSave!==null)return;try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true;}catch(e){storageOK=false;notify('Saving is unavailable. Keep this page open or export a backup.');}}
 function notify(t){document.getElementById('notice').textContent=t;clearTimeout(timer);timer=setTimeout(()=>document.getElementById('notice').textContent='',5000);}
 
 const COLORS=['#7962a6','#4f7836','#267b7d','#ad5b28','#3b6daa'];
@@ -219,7 +219,7 @@ function render(){
  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===(tab==='building'?'town':tab)));
  
  document.querySelector('nav').hidden=false;
- let html=storageOK?'':'<p class="card">Device saving is unavailable or an old save could not be loaded. Export a backup below to preserve your progress.</p>';
+ let html=rejectedSave!==null?'<section class="card" role="alert"><h2>Your original save is protected</h2><p>We could not read your saved progress. Automatic saving is paused so the original data stays untouched.</p><p>Export the original save first. Then use Settings to import a working backup or explicitly reset progress. Check-ins made while recovery is pending are temporary.</p><button id="export">Export original save</button><button data-tab="settings">Recovery settings</button></section>':storageOK?'':'<p class="card">Device saving is unavailable. Use Settings to export a backup before closing this page.</p>';
  html+=renderScreen();
  document.getElementById('view').innerHTML=html;save();
 }
@@ -247,7 +247,7 @@ if(b.dataset.crown!==undefined){const i=Number(b.dataset.crown),w=inventory();if
 if(b.id==='level-next'){nextCelebration();return;}
 if(b.dataset.look){const name=document.getElementById('character-name').value;appearance[b.dataset.look]=Number(b.dataset.value);render();document.getElementById('character-name').value=name;}
 if(b.id==='begin'){const name=document.getElementById('character-name').value.trim();if(!name){notify('Enter a name for your adventurer.');document.getElementById('character-name').focus();return;}state.character={name:name.slice(0,24),...appearance};save();render();notify('Welcome to Fitness Level Up, '+name+'!');}
-if(b.id==='restart'){if(!confirm('Start fresh? This removes all XP and check-ins on this device. Export a backup first if you want to keep them.'))return;state=fresh();appearance={hair:0,outfit:0,skin:0};draft=[];tab='town';save();render();notify('New adventure ready. Every skill starts at 0 XP.');}
+if(b.id==='restart'){if(!confirm('Start fresh? This removes all XP and check-ins on this device. Export a backup first if you want to keep them.'))return;rejectedSave=null;state=fresh();appearance={hair:0,outfit:0,skin:0};draft=[];tab='town';save();render();notify('New adventure ready. Every skill starts at 0 XP.');}
 if(b.dataset.building!==undefined){openBuildingCheck(Number(b.dataset.building));return;}
 if(b.id==='back-town'){tab='town';render();window.scrollTo(0,0);}
 if(b.dataset.tab){const targetTab=b.dataset.tab;tab=(b.closest('nav')&&tab===targetTab)?'town':targetTab;draft=[];render();window.scrollTo(0,0);return;}
@@ -265,13 +265,13 @@ const entry=existing||{scores:[null,null,null,null,null],rates:[null,null,null,n
 entry.scores[i]=score;entry.rates[i]=rate;state.days[day()]=entry;state.skills[i].xp+=earned;draft[i]=null;render();
 if(earned>0)reward('+'+earned+' XP');notify(SKILLS[i].name+' check-in saved.'+(townBonus?' Town bonus: +'+townBonus+'% XP.':'')+' '+resetText());queueLevels(i,before,level(state.skills[i].xp));
 }
-if(b.id==='export'){accrue();save();const url=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='fitness-level-up-save-'+day()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+if(b.id==='export'){accrue();save();const url=URL.createObjectURL(new Blob([rejectedSave!==null?rejectedSave:JSON.stringify(state,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=(rejectedSave!==null?'fitness-level-up-original-save-':'fitness-level-up-save-')+day()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 });
 document.addEventListener('change',async e=>{if(e.target.id!=='import'||!e.target.files[0])return;try{let s=JSON.parse(await e.target.files[0].text());if(!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||typeof s.days!=='object'||!Number.isFinite(s.bank)||s.bank<0||!Number.isFinite(s.last))throw Error();
 if(s.character&&(!s.character.name||typeof s.character.name!=='string'||s.character.name.length>24||!['hair','outfit','skin'].every(k=>Number.isInteger(s.character[k])&&s.character[k]>=0&&s.character[k]<3)))throw Error();
 if(s.wardrobe&&(!Array.isArray(s.wardrobe.owned)||!s.wardrobe.owned.every(x=>ITEMS.some(i=>i.id===x))||!s.wardrobe.equipped||typeof s.wardrobe.equipped!=='object'||!Array.isArray(s.wardrobe.earned)||!s.wardrobe.earned.every(x=>ACHIEVEMENTS.some(a=>a.id===x))))throw Error();
 for(const v of Object.values(s.days)){if(!Array.isArray(v.scores)||v.scores.length!==5||!v.scores.every(n=>n===null||(Number.isInteger(n)&&n>=0&&n<=5))||!Array.isArray(v.rates)||v.rates.length!==5||!v.rates.every((n,i)=>v.scores[i]===null?n===null:RATES.includes(n)))throw Error();}
-if(!confirm('Replace progress on this device with this backup?'))return;state=s;draft=[];render();notify('Backup restored.');}catch(err){notify('This file is not a valid Fitness Level Up save.');}});
+if(!confirm('Replace progress on this device with this backup?'))return;state=s;rejectedSave=null;draft=[];render();notify('Backup restored.');}catch(err){notify('This file is not a valid Fitness Level Up save.');}});
 document.getElementById('level-dialog').addEventListener('cancel',e=>{e.preventDefault();nextCelebration();});
 
 const RATING_GUIDANCE=['No progress','Small start','Some progress','About halfway','Mostly met','Goal met'];
