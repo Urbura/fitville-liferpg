@@ -317,10 +317,62 @@
       }
     }
 
-    function notify(t) {
-      document.getElementById('notice').textContent = t;
+    function dismissNotice() {
       clearTimeout(timer);
-      timer = setTimeout(() => (document.getElementById('notice').textContent = ''), 5000);
+      const notice = document.getElementById('notice');
+      notice.textContent = '';
+      notice.removeAttribute('tabindex');
+      if (document.activeElement === notice) notice.blur();
+    }
+    function notify(t) {
+      const notice = document.getElementById('notice');
+      clearTimeout(timer);
+      notice.textContent = t;
+      if (t) notice.setAttribute('tabindex', '0');
+      else notice.removeAttribute('tabindex');
+      timer = setTimeout(dismissNotice, 5000);
+    }
+    function setupNoticeDismissal() {
+      const notice = document.getElementById('notice');
+      notice.title = 'Tap or swipe up to dismiss';
+      notice.addEventListener('click', dismissNotice);
+      notice.addEventListener('keydown', (event) => {
+        if (['Enter', ' ', 'Escape'].includes(event.key)) {
+          event.preventDefault();
+          dismissNotice();
+        }
+      });
+      let swipeStart = null;
+      notice.addEventListener(
+        'touchstart',
+        (event) => {
+          swipeStart =
+            event.touches.length === 1
+              ? { x: event.touches[0].clientX, y: event.touches[0].clientY }
+              : null;
+        },
+        { passive: true },
+      );
+      notice.addEventListener(
+        'touchend',
+        (event) => {
+          if (swipeStart && event.changedTouches.length === 1) {
+            const touch = event.changedTouches[0];
+            const upward = swipeStart.y - touch.clientY;
+            const sideways = Math.abs(swipeStart.x - touch.clientX);
+            if (upward >= 35 && upward > sideways * 1.5) dismissNotice();
+          }
+          swipeStart = null;
+        },
+        { passive: true },
+      );
+      notice.addEventListener(
+        'touchcancel',
+        () => {
+          swipeStart = null;
+        },
+        { passive: true },
+      );
     }
 
     // Dashboard and level celebrations
@@ -1021,6 +1073,7 @@
           e.currentTarget.close();
       }
     });
+    setupNoticeDismissal();
     setupDevUI();
     render(false);
     startupReady = true;

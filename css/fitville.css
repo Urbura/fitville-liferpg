@@ -120,6 +120,8 @@ button:focus-visible {
 }
 
 #notice {
+  cursor: pointer;
+  touch-action: pan-x;
   position: fixed;
   top: 14px;
   left: 16px;
@@ -1025,4 +1027,9 @@ header .stats>span {
     height:28px;
     min-height:28px;
   }
+}
+
+#notice:focus-visible {
+  outline: 3px solid #bf871d;
+  outline-offset: 4px;
 }
