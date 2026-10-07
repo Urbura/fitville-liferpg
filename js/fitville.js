@@ -648,22 +648,8 @@
 
     // Header, settings, and screen rendering
     function renderHUD() {
-      const overallXp = state.skills.reduce((n, s) => n + s.xp, 0),
-        overallLevel = level(overallXp),
-        display = document.getElementById('total');
-      document.getElementById('overall-level').textContent = 'Total Level ' + overallLevel;
-      display.textContent =
-        overallXp.toLocaleString() +
-        ' / ' +
-        (overallLevel === 99 ? 'MAX' : XP[overallLevel + 1].toLocaleString()) +
-        ' XP';
-      display.title =
-        overallLevel === 99
-          ? 'Combined XP across all five skills · maximum level'
-          : 'Combined XP across all five skills · ' +
-            (XP[overallLevel + 1] - overallXp).toLocaleString() +
-            ' XP to Total Level ' +
-            (overallLevel + 1);
+      const overallXp = state.skills.reduce((n, s) => n + s.xp, 0);
+      document.getElementById('overall-level').textContent = 'Total Level ' + level(overallXp);
     }
 
     function renderSettings() {
