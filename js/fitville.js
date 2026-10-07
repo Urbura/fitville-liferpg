@@ -18,8 +18,8 @@ const XP_ANCHORS=[[1,0],[2,7],[10,100],[20,400],[30,1100],[40,3000],[50,8000],[6
 const XP=Array(100).fill(0);for(let a=0;a<XP_ANCHORS.length-1;a++){const [l1,x1]=XP_ANCHORS[a],[l2,x2]=XP_ANCHORS[a+1];for(let l=l1;l<=l2;l++){const p=(l-l1)/(l2-l1);XP[l]=Math.round(x1+(x2-x1)*p);}}
 function level(x){let l=1;while(l<99&&x>=XP[l+1])l++;return l;}
 function fresh(){return{coins:0,skills:SKILLS.map(()=>({xp:0,tier:0})),days:{},last:Date.now(),bank:0};}
-let state=fresh(),storageOK=true,rejectedSave=null;
-try{let raw=localStorage.getItem(KEY);if(raw){rejectedSave=raw;let s=JSON.parse(raw);if(!s||!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||!Number.isFinite(s.last)||!Number.isFinite(s.bank))throw Error('Invalid save');state=s;rejectedSave=null;}}catch(e){storageOK=false;}
+let state=fresh(),storageOK=true,rejectedSave=null,lastSavedRaw=null;
+try{let raw=localStorage.getItem(KEY);lastSavedRaw=raw;if(raw){rejectedSave=raw;let s=JSON.parse(raw);if(!s||!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||!Number.isFinite(s.last)||!Number.isFinite(s.bank))throw Error('Invalid save');state=s;rejectedSave=null;}}catch(e){storageOK=false;}
 // Normalize older saves before any UI or achievement code reads them.
 state.days=(state.days&&typeof state.days==='object')?state.days:{};
 for(const [k,d] of Object.entries(state.days)){
@@ -62,7 +62,37 @@ function resetText(){const remaining=Math.max(0,nextReset()-Date.now()),hours=Ma
 function baseIncome(){return 2+state.skills.reduce((n,s)=>n+s.tier*2,0);}
 function income(){return baseIncome()*(1+townGoldBonus()/100);}
 function accrue(){state.last=Date.now();}
-function save(){if(DEV||rejectedSave!==null)return;try{localStorage.setItem(KEY,JSON.stringify(state));storageOK=true;}catch(e){storageOK=false;notify('Saving is unavailable. Keep this page open or export a backup.');}}
+function validSharedSave(s){
+ return s&&Number.isFinite(s.coins)&&s.coins>=0&&Array.isArray(s.skills)&&s.skills.length===5&&s.skills.every(x=>x&&Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)&&s.days&&typeof s.days==='object'&&Number.isFinite(s.last)&&Number.isFinite(s.bank);
+}
+function syncSharedSave(){
+ if(DEV||rejectedSave!==null)return false;
+ try{
+  const raw=localStorage.getItem(KEY);
+  if(raw===lastSavedRaw)return false;
+  if(raw===null){state=fresh();}else{
+   let incoming;
+   try{incoming=JSON.parse(raw);if(!validSharedSave(incoming))throw Error('Invalid shared save');}
+   catch(err){rejectedSave=raw;lastSavedRaw=raw;storageOK=false;return true;}
+   state=incoming;
+  }
+  lastSavedRaw=raw;draft=[];storageOK=true;
+  document.getElementById('check-dialog').close();
+  return true;
+ }catch(err){storageOK=false;return false;}
+}
+function save(){
+ if(DEV||rejectedSave!==null)return false;
+ try{
+  if(localStorage.getItem(KEY)!==lastSavedRaw){
+   syncSharedSave();render(false);notify('Progress changed in another tab. The latest save has been loaded.');return false;
+  }
+  const raw=JSON.stringify(state);
+  if(raw!==lastSavedRaw)localStorage.setItem(KEY,raw);
+  lastSavedRaw=raw;storageOK=true;return true;
+ }catch(e){storageOK=false;notify('Saving is unavailable. Keep this page open or export a backup.');return false;}
+}
+
 function notify(t){document.getElementById('notice').textContent=t;clearTimeout(timer);timer=setTimeout(()=>document.getElementById('notice').textContent='',5000);}
 
 const COLORS=['#7962a6','#4f7836','#267b7d','#ad5b28','#3b6daa'];
@@ -212,7 +242,7 @@ function renderScreen(){
  return village();
 }
 
-function render(){
+function render(persist=true){
  document.body.classList.remove('map-home');
  document.body.classList.toggle('tracker-home',tab==='town');
  accrue();awardAchievements();renderHUD();
@@ -221,10 +251,11 @@ function render(){
  document.querySelector('nav').hidden=false;
  let html=rejectedSave!==null?'<section class="card" role="alert"><h2>Your original save is protected</h2><p>We could not read your saved progress. Automatic saving is paused so the original data stays untouched.</p><p>Export the original save first. Then use Settings to import a working backup or explicitly reset progress. Check-ins made while recovery is pending are temporary.</p><button id="export">Export original save</button><button data-tab="settings">Recovery settings</button></section>':storageOK?'':'<p class="card">Device saving is unavailable. Use Settings to export a backup before closing this page.</p>';
  html+=renderScreen();
- document.getElementById('view').innerHTML=html;save();
+ document.getElementById('view').innerHTML=html;if(persist)save();
 }
 
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+function handleTrackerClick(e){const b=e.target.closest('button');if(!b)return;
+if(syncSharedSave())render(false);
 if(b.id==='wallet'){accrue();let n=Math.floor(state.bank);if(n>0){state.bank-=n;state.coins+=n;save();renderHUD();reward('+'+n+' coins');notify('Collected '+n+' town gold.');}return;}
 if(b.id==='recovery-reload'){location.reload();return;}
 if(DEV&&b.id==='dev-toggle'){document.getElementById('dev-tools').hidden=true;document.getElementById('dev-open').hidden=false;return;}
@@ -266,6 +297,12 @@ entry.scores[i]=score;entry.rates[i]=rate;state.days[day()]=entry;state.skills[i
 if(earned>0)reward('+'+earned+' XP');notify(SKILLS[i].name+' check-in saved.'+(townBonus?' Town bonus: +'+townBonus+'% XP.':'')+' '+resetText());queueLevels(i,before,level(state.skills[i].xp));
 }
 if(b.id==='export'){accrue();save();const url=URL.createObjectURL(new Blob([rejectedSave!==null?rejectedSave:JSON.stringify(state,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=(rejectedSave!==null?'fitness-level-up-original-save-':'fitness-level-up-save-')+day()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+}
+document.addEventListener('click',e=>{
+ if(!e.target.closest('button'))return;
+ if(typeof navigator!=='undefined'&&navigator.locks){
+  navigator.locks.request('fitness-level-up-save',()=>handleTrackerClick(e)).catch(err=>{console.error(err);notify('Could not update progress. Please try again.');});
+ }else{handleTrackerClick(e);}
 });
 document.addEventListener('change',async e=>{if(e.target.id!=='import'||!e.target.files[0])return;try{let s=JSON.parse(await e.target.files[0].text());if(!Number.isFinite(s.coins)||s.coins<0||!Array.isArray(s.skills)||s.skills.length!==5||!s.skills.every(x=>Number.isFinite(x.xp)&&x.xp>=0&&Number.isInteger(x.tier)&&x.tier>=0&&x.tier<6)||!s.days||typeof s.days!=='object'||!Number.isFinite(s.bank)||s.bank<0||!Number.isFinite(s.last))throw Error();
 if(s.character&&(!s.character.name||typeof s.character.name!=='string'||s.character.name.length>24||!['hair','outfit','skin'].every(k=>Number.isInteger(s.character[k])&&s.character[k]>=0&&s.character[k]<3)))throw Error();
@@ -290,4 +327,10 @@ document.querySelector('header>div').appendChild(topNav);
 topNav.querySelectorAll('button').forEach(b=>{const label=b.textContent.trim();b.setAttribute('aria-label',label);b.title=label;});
 document.getElementById('check-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.currentTarget.close();}});
 
-setupDevUI();try{render();}catch(err){console.error('Fitness Level Up startup error',err);document.getElementById('view').innerHTML='<section class="card"><h2>Fitness Level Up needs a quick refresh</h2><p>The game hit a startup error, but your save is still stored on this device.</p><p class="muted">Error: '+safeText(err&&err.message?err.message:'Unknown startup error')+'</p><button id="recovery-reload" class="wide">Reload Fitness Level Up</button></section>';document.querySelector('nav').hidden=true;}setInterval(()=>{if((tab==='town'||tab==='check')&&document.visibilityState==='visible'){accrue();renderHUD();save();}},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){draft=[];accrue();renderHUD();save();}});window.addEventListener('pagehide',()=>{accrue();save();});
+setupDevUI();try{render();}catch(err){console.error('Fitness Level Up startup error',err);document.getElementById('view').innerHTML='<section class="card"><h2>Fitness Level Up needs a quick refresh</h2><p>The game hit a startup error, but your save is still stored on this device.</p><p class="muted">Error: '+safeText(err&&err.message?err.message:'Unknown startup error')+'</p><button id="recovery-reload" class="wide">Reload Fitness Level Up</button></section>';document.querySelector('nav').hidden=true;}setInterval(()=>{if((tab==='town'||tab==='check')&&document.visibilityState==='visible'){accrue();renderHUD();save();}},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(syncSharedSave())render(false);draft=[];accrue();renderHUD();save();}});window.addEventListener('pagehide',()=>{accrue();save();});
+
+window.addEventListener('storage',e=>{
+ if((e.key===KEY||e.key===null)&&syncSharedSave()){
+  render(false);notify('Progress updated from another tab.');
+ }
+});
