@@ -217,7 +217,7 @@ if(DEV&&b.id==='dev-set-level'){const select=document.getElementById('dev-skill'
 if(DEV&&b.id==='dev-restore'){const raw=readSession(DEV_BACKUP);if(raw===null){notify('No original save backup is available in this session.');return;}if(raw==='__EMPTY__'){state=fresh();}else{try{state=readSave(raw);}catch(err){notify('Could not restore the original save.');return;}}draft=[];tab='town';render();notify('Original save restored in the preview.');return;}
 if(DEV&&b.id==='dev-exit'){
  const raw=readSession(DEV_BACKUP);
- if(raw!==null){try{state=raw==='__EMPTY__'?fresh():readSave(raw);}catch(err){notify('The original save needs recovery. Export it before resetting.');return;}}
+ if(raw!==null){try{state=raw==='__EMPTY__'?fresh():readSave(raw);}catch(err){state=fresh();rejectedSave=raw;storageOK=false;}}
  removeSession(DEV_BACKUP);removeSession('fitville-dev-active');DEV=false;
  const u=new URL(location.href);u.searchParams.delete('dev');u.searchParams.delete('test');history.replaceState(null,'',u.pathname+u.search+u.hash);
  setupDevUI();draft=[];tab='town';syncSharedSave();render(false);
