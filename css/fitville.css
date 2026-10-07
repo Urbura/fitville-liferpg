@@ -1586,3 +1586,9 @@ body.map-home {
 .tracker-intro { margin-bottom:18px; }
 .fitness-card .skill-crown { width:65px; }
 @media(max-width:600px){ .fitness-grid { grid-template-columns:1fr; gap:10px; } .fitness-card { padding:13px 16px; } header h1 { max-width:150px; font-size:18px; } .fitness-title { margin:6px 0; } }
+
+/* Locally hosted Tabler symbols share consistent size and card colours. */
+.skill-symbol { display:inline-flex; width:38px; height:38px; align-items:center; justify-content:center; border-radius:50%; background:color-mix(in srgb,var(--skill) 14%,white); vertical-align:middle; flex-shrink:0; margin-right:6px; }
+.skill-symbol>span { display:block; width:24px; height:24px; background:var(--skill); -webkit-mask:var(--symbol) center / contain no-repeat; mask:var(--symbol) center / contain no-repeat; }
+.level-emblem .skill-symbol { width:76px; height:76px; }
+.level-emblem .skill-symbol>span { width:48px; height:48px; }
