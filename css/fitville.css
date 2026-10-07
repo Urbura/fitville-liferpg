@@ -1054,3 +1054,26 @@ header .stats>span {
   .star-skill .star-progress { margin-top: 0; height: 5px; }
   .star-xp { font-size: 9px; }
 }
+
+/* Combined XP fills within the current total level. */
+header .stats > #total {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+.total-xp-progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  appearance: none;
+  background: #ffffff40;
+  accent-color: #ffd35d;
+}
+.total-xp-progress::-webkit-progress-bar { background: #ffffff40; border-radius: 999px; }
+.total-xp-progress::-webkit-progress-value { background: #ffd35d; border-radius: 999px; }
+.total-xp-progress::-moz-progress-bar { background: #ffd35d; border-radius: 999px; }

@@ -652,11 +652,14 @@
         overallLevel = level(overallXp),
         display = document.getElementById('total');
       document.getElementById('overall-level').textContent = 'Total Level ' + overallLevel;
-      display.textContent =
+      const progress = overallLevel === 99 ? 1 : (overallXp - XP[overallLevel]) / (XP[overallLevel + 1] - XP[overallLevel]);
+      display.innerHTML =
         overallXp.toLocaleString() +
         ' / ' +
         (overallLevel === 99 ? 'MAX' : XP[overallLevel + 1].toLocaleString()) +
-        ' XP';
+        ' XP' +
+        '<progress class="total-xp-progress" max="1" value="' + progress +
+        '" aria-label="Total XP progress to next level"></progress>';
       display.title =
         overallLevel === 99
           ? 'Combined XP across all five skills · maximum level'
