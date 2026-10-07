@@ -114,5 +114,5 @@ body.map-home .scene-building{z-index:3}
 /* A gentler mobile zoom, with the touch targets following the town artwork. */
 @media(max-width:600px){
  body.map-home .town-hero{background:#6fdc42 url("../assets/fitville-crossroads-mobile.jpg") center center / cover no-repeat}
- body.map-home .town-map.illustrated-town{transform:scale(.94);transform-origin:center center;overflow:hidden!important;border-radius:8px!important}
+ body.map-home .town-map.illustrated-town{transform:scale(.90);transform-origin:center center;overflow:hidden!important;border-radius:8px!important}
 }
