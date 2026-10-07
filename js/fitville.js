@@ -185,7 +185,8 @@ return html;}
 
 function renderHUD(){
  const overallXp=state.skills.reduce((n,s)=>n+s.xp,0),overallLevel=level(overallXp),display=document.getElementById('total');
- display.textContent='✦ Overall Level '+overallLevel+' · '+overallXp.toLocaleString()+' total XP';
+ document.getElementById('overall-level').textContent='Overall Level '+overallLevel;
+ display.textContent='Total XP '+overallXp.toLocaleString();
  display.title='Combined XP across all five fitness skills';
 }
 
