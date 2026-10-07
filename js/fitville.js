@@ -35,7 +35,7 @@ if(state.wardrobe){
  state.wardrobe.equipped=state.wardrobe.equipped&&typeof state.wardrobe.equipped==='object'?state.wardrobe.equipped:{};
 }
 if(DEV&&!sessionStorage.getItem(DEV_BACKUP)){const existing=localStorage.getItem(KEY);sessionStorage.setItem(DEV_BACKUP,existing===null?'__EMPTY__':existing);}
-let tab='town',draft=[],timer,selectedBuilding=0;
+let tab='town',draft=[],timer,selectedBuilding=0,renderedDay=null,dailyResetTimer;
 const RESET_UTC_HOUR=9,RESET_UTC_MINUTE=30,RESET_SHIFT=(RESET_UTC_HOUR*60+RESET_UTC_MINUTE)*60*1000;
 function day(now=Date.now()){return new Date(now-RESET_SHIFT).toISOString().slice(0,10);}
 function nextReset(now=Date.now()){const d=new Date(now),reset=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),RESET_UTC_HOUR,RESET_UTC_MINUTE);return now<reset?reset:reset+86400000;}
@@ -59,6 +59,26 @@ const local=new Date(),oldKey=local.getFullYear()+'-'+String(local.getMonth()+1)
 if((state.dailyResetVersion||0)<2){state.dailyResetVersion=2;const old=state.days[oldKey];if(old&&old.scores.some(Number.isInteger)){if(oldKey!==key){state.days[key]=old;delete state.days[oldKey];}e=old;}save();}
 return e;}
 function resetText(){const remaining=Math.max(0,nextReset()-Date.now()),hours=Math.floor(remaining/3600000),minutes=Math.floor(remaining%3600000/60000);return 'Resets at 3:30 a.m. CST (UTC−6) · '+hours+'h '+minutes+'m remaining';}
+
+function refreshDayIfNeeded(){
+ if(renderedDay===null||renderedDay===day())return false;
+ draft=[];
+ document.getElementById('check-dialog').close();
+ render(false);
+ notify('A new check-in day has started. All five skills are available.');
+ return true;
+}
+function scheduleDailyReset(){
+ clearTimeout(dailyResetTimer);
+ dailyResetTimer=setTimeout(()=>{
+  if(document.visibilityState==='visible')refreshDayIfNeeded();
+  scheduleDailyReset();
+ },Math.max(50,nextReset()-Date.now()+50));
+}
+function refreshResetCountdown(){
+ document.querySelectorAll('.star-reset').forEach(el=>el.textContent=resetText());
+}
+
 function baseIncome(){return 2+state.skills.reduce((n,s)=>n+s.tier*2,0);}
 function income(){return baseIncome()*(1+townGoldBonus()/100);}
 function accrue(){state.last=Date.now();}
@@ -251,11 +271,12 @@ function render(persist=true){
  document.querySelector('nav').hidden=false;
  let html=rejectedSave!==null?'<section class="card" role="alert"><h2>Your original save is protected</h2><p>We could not read your saved progress. Automatic saving is paused so the original data stays untouched.</p><p>Export the original save first. Then use Settings to import a working backup or explicitly reset progress. Check-ins made while recovery is pending are temporary.</p><button id="export">Export original save</button><button data-tab="settings">Recovery settings</button></section>':storageOK?'':'<p class="card">Device saving is unavailable. Use Settings to export a backup before closing this page.</p>';
  html+=renderScreen();
- document.getElementById('view').innerHTML=html;if(persist)save();
+ document.getElementById('view').innerHTML=html;renderedDay=day();scheduleDailyReset();if(persist)save();
 }
 
 function handleTrackerClick(e){const b=e.target.closest('button');if(!b)return;
 if(syncSharedSave())render(false);
+refreshDayIfNeeded();
 if(b.id==='wallet'){accrue();let n=Math.floor(state.bank);if(n>0){state.bank-=n;state.coins+=n;save();renderHUD();reward('+'+n+' coins');notify('Collected '+n+' town gold.');}return;}
 if(b.id==='recovery-reload'){location.reload();return;}
 if(DEV&&b.id==='dev-toggle'){document.getElementById('dev-tools').hidden=true;document.getElementById('dev-open').hidden=false;return;}
@@ -327,7 +348,7 @@ document.querySelector('header>div').appendChild(topNav);
 topNav.querySelectorAll('button').forEach(b=>{const label=b.textContent.trim();b.setAttribute('aria-label',label);b.title=label;});
 document.getElementById('check-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.currentTarget.close();}});
 
-setupDevUI();try{render();}catch(err){console.error('Fitness Level Up startup error',err);document.getElementById('view').innerHTML='<section class="card"><h2>Fitness Level Up needs a quick refresh</h2><p>The game hit a startup error, but your save is still stored on this device.</p><p class="muted">Error: '+safeText(err&&err.message?err.message:'Unknown startup error')+'</p><button id="recovery-reload" class="wide">Reload Fitness Level Up</button></section>';document.querySelector('nav').hidden=true;}setInterval(()=>{if((tab==='town'||tab==='check')&&document.visibilityState==='visible'){accrue();renderHUD();save();}},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(syncSharedSave())render(false);draft=[];accrue();renderHUD();save();}});window.addEventListener('pagehide',()=>{accrue();save();});
+setupDevUI();try{render();}catch(err){console.error('Fitness Level Up startup error',err);document.getElementById('view').innerHTML='<section class="card"><h2>Fitness Level Up needs a quick refresh</h2><p>The game hit a startup error, but your save is still stored on this device.</p><p class="muted">Error: '+safeText(err&&err.message?err.message:'Unknown startup error')+'</p><button id="recovery-reload" class="wide">Reload Fitness Level Up</button></section>';document.querySelector('nav').hidden=true;}setInterval(()=>{if(document.visibilityState==='visible'){refreshDayIfNeeded();refreshResetCountdown();renderHUD();}},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(syncSharedSave())render(false);refreshDayIfNeeded();refreshResetCountdown();draft=[];renderHUD();}});window.addEventListener('pagehide',()=>{accrue();save();});
 
 window.addEventListener('storage',e=>{
  if((e.key===KEY||e.key===null)&&syncSharedSave()){
