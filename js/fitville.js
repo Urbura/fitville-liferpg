@@ -109,7 +109,7 @@ function village(){
  const entry=dailyEntry(),doneCount=checkedCount(entry);
  return '<section class="tracker-intro"><h2>Your daily check-in</h2><p class="muted">Tap a skill and rate your day out of 5.</p></section><div class="skill-star" aria-label="Five fitness skills"><div class="star-summary" aria-live="polite"><strong>'+doneCount+' / 5</strong><span>checked in</span></div>'+SKILL_DISPLAY_ORDER.map((i,position)=>{
   const s=SKILLS[i],l=level(state.skills[i].xp),done=entry&&Number.isInteger(entry.scores[i]);
-  return '<button class="star-skill star-position-'+position+(done?' is-complete':'')+'" data-building="'+i+'" style="--skill:'+COLORS[i]+'" aria-label="'+s.name+', level '+l+', '+(done?'checked in today, '+entry.scores[i]+' out of 5':'check in out of 5')+'">'+skillIcon(i)+(done?'<span class="star-check" aria-hidden="true">✓</span>':'')+'<strong>'+s.name+'</strong><span class="star-level">Lv '+l+(done?' · '+entry.scores[i]+'/5':'')+'</span></button>';
+  return '<button class="star-skill star-position-'+position+(done?' is-complete':'')+'" data-building="'+i+'" style="--skill:'+COLORS[i]+'" aria-label="'+s.name+', level '+l+', '+(done?'checked in today, '+entry.scores[i]+' out of 5':'check in out of 5')+'"><span class="star-level">Lv '+l+'</span>'+skillIcon(i)+(done?'<span class="star-check" aria-hidden="true">✓</span>':'')+'<strong>'+s.name+'</strong>'+(done?'<span class="star-score">'+entry.scores[i]+'/5 today</span>':'')+'</button>';
  }).join('')+'</div><p class="star-reset muted">'+resetText()+'</p>';
 }
 
@@ -185,7 +185,7 @@ return html;}
 
 function renderHUD(){
  const overallXp=state.skills.reduce((n,s)=>n+s.xp,0),overallLevel=level(overallXp),display=document.getElementById('total');
- display.textContent='✦ Lv '+overallLevel+' · '+overallXp.toLocaleString()+(overallLevel<99?' / '+XP[overallLevel+1].toLocaleString()+' XP':' XP · MAX');
+ display.textContent='✦ Lv '+overallLevel+' · '+overallXp.toLocaleString()+' total XP';
  display.title='Combined XP across all five fitness skills';
 }
 

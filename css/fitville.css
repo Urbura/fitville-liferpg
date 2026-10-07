@@ -1619,3 +1619,8 @@ body.tracker-home .tracker-intro p { margin:0; font-size:13px; }
 .star-reset { flex-shrink:0; text-align:center; font-size:11px; margin:6px 0 0; }
 @media(max-height:650px){ .star-skill .skill-symbol { width:50px; height:50px; } .star-skill .skill-symbol>span { width:28px; height:28px; } .star-skill { gap:3px; } }
 @media(orientation:landscape) and (max-height:500px){ body.tracker-home .tracker-intro { display:none; } .skill-star { max-width:650px; } .star-position-0 { top:20%; } .star-position-2,.star-position-3 { top:76%; } .star-skill .skill-symbol { width:40px; height:40px; } }
+
+/* Levels sit above their symbols; only Settings remains in the header. */
+.star-level { color:var(--skill); font-weight:700; font-size:13px; }
+.star-score { color:#267b51; font-size:11px; }
+.star-check { top:24px; }
