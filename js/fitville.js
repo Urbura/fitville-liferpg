@@ -7,7 +7,7 @@ const SKILLS=[
 ];
 const SKILL_DISPLAY_ORDER=[4,3,2,1,0];
 const SKILL_SYMBOLS=['moon','salad','stretching','run','barbell'];
-function skillIcon(i){return '<span class="skill-symbol" style="--symbol:url(assets/icons/'+SKILL_SYMBOLS[i]+'.svg);--skill:'+COLORS[i]+'" aria-hidden="true"><span></span></span>';}
+function skillIcon(i){return '<span class="skill-symbol" style="--symbol:url(../assets/icons/'+SKILL_SYMBOLS[i]+'.svg);--skill:'+COLORS[i]+'" aria-hidden="true"><span></span></span>';}
 const TIERS=['Starter','Basic','Improved','Advanced','Elite','Master'];
 const RATES=[1,3,6,12,20,35], COSTS=[0,200,700,2200,5500,10500];
 const KEY='fitville-v1', CAP=8*60*60*1000;
