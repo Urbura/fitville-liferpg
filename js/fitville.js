@@ -62,29 +62,11 @@
         open.hidden = true;
       }
     }
-    const XP_ANCHORS = [
-      [1, 0],
-      [2, 7],
-      [10, 100],
-      [20, 400],
-      [30, 1100],
-      [40, 3000],
-      [50, 8000],
-      [60, 20000],
-      [70, 50000],
-      [80, 110000],
-      [90, 210000],
-      [99, 350000],
-    ];
-    const XP = Array(100).fill(0);
-    for (let a = 0; a < XP_ANCHORS.length - 1; a++) {
-      const [l1, x1] = XP_ANCHORS[a],
-        [l2, x2] = XP_ANCHORS[a + 1];
-      for (let l = l1; l <= l2; l++) {
-        const p = (l - l1) / (l2 - l1);
-        XP[l] = Math.round(x1 + (x2 - x1) * p);
-      }
-    }
+    // Five XP per day reaches skill level 99 in 180 days.
+    // Increasing thresholds make early levels quicker and later levels slower.
+    const XP = Array.from({ length: 100 }, (_, l) =>
+      l < 1 ? 0 : Math.round(900 * Math.pow((l - 1) / 98, 1.5)),
+    );
     function level(x) {
       let l = 1;
       while (l < 99 && x >= XP[l + 1]) l++;
@@ -121,8 +103,7 @@
     if (DEV && readSession(DEV_BACKUP) === null && storageLoaded)
       writeSession(DEV_BACKUP, lastSavedRaw === null ? '__EMPTY__' : lastSavedRaw);
     // Daily reset and shared-save synchronization
-    let tab = 'town',
-      draft = [],
+    let tab = 'dashboard',
       timer,
       renderedDay = null,
       dailyResetTimer;
@@ -186,7 +167,6 @@
 
     function refreshDayIfNeeded() {
       if (renderedDay === null || renderedDay === day()) return false;
-      draft = [];
       document.getElementById('check-dialog').close();
       render(false);
       notify('A new check-in day has started. All five skills are available.');
@@ -286,7 +266,6 @@
           state = incoming;
         }
         lastSavedRaw = raw;
-        draft = [];
         storageOK = true;
         document.getElementById('check-dialog').close();
         return true;
@@ -377,7 +356,7 @@
 
     // Dashboard and level celebrations
     const COLORS = ['#7962a6', '#4f7836', '#267b7d', '#ad5b28', '#3b6daa'];
-    function village() {
+    function dashboard() {
       const entry = dailyEntry(),
         doneCount = checkedCount(entry);
       return (
@@ -395,7 +374,7 @@
             '<button class="star-skill star-position-' +
             position +
             (done ? ' is-complete' : '') +
-            '" data-building="' +
+            '" data-open-skill="' +
             i +
             '" style="--skill:' +
             COLORS[i] +
@@ -653,22 +632,20 @@
     }
 
     function renderSettings() {
-      return '<button class="back-button" data-tab="town">← Back to Dashboard</button><section class="card tools"><h2>⚙ Settings</h2><p class="muted">Progress stays in this browser. Export before switching devices or clearing browser data.</p><button id="export">Export save</button><p><label>Import save backup<br><input id="import" type="file" accept=".json,application/json" style="max-width:100%;margin-top:10px" aria-label="Import save backup"></label></p><button id="restart" class="restart wide">Reset tracker progress</button></section>';
+      return '<button class="back-button" data-tab="dashboard">← Back to Dashboard</button><section class="card tools"><h2>⚙ Settings</h2><p class="muted">Progress stays in this browser. Export before switching devices or clearing browser data.</p><button id="export">Export save</button><p><label>Import save backup<br><input id="import" type="file" accept=".json,application/json" style="max-width:100%;margin-top:10px" aria-label="Import save backup"></label></p><button id="restart" class="restart wide">Reset tracker progress</button></section>';
     }
     function renderScreen() {
       if (tab === 'settings') return renderSettings();
-      return village();
+      return dashboard();
     }
 
     function render(persist = true) {
       document.body.classList.remove('map-home');
-      document.body.classList.toggle('tracker-home', tab === 'town');
+      document.body.classList.toggle('tracker-home', tab === 'dashboard');
       renderHUD();
       document
         .querySelectorAll('nav button')
-        .forEach((b) =>
-          b.setAttribute('aria-selected', b.dataset.tab === (tab === 'building' ? 'town' : tab)),
-        );
+        .forEach((b) => b.setAttribute('aria-selected', b.dataset.tab === tab));
 
       document.querySelector('nav').hidden = false;
       let html =
@@ -796,8 +773,7 @@
             return;
           }
         }
-        draft = [];
-        tab = 'town';
+        tab = 'dashboard';
         render();
         notify('Original save restored in the preview.');
         return;
@@ -821,8 +797,7 @@
         u.searchParams.delete('test');
         history.replaceState(null, '', u.pathname + u.search + u.hash);
         setupDevUI();
-        draft = [];
-        tab = 'town';
+        tab = 'dashboard';
         syncSharedSave();
         render(false);
         notify('Developer Mode closed. Original progress preserved.');
@@ -843,8 +818,7 @@
         if (!prepareReplacement()) return;
         rejectedSave = null;
         state = fresh();
-        draft = [];
-        tab = 'town';
+        tab = 'dashboard';
         const persisted = save();
         render(false);
         notify(
@@ -853,14 +827,13 @@
             : 'Progress reset in this page only. Device saving is unavailable.',
         );
       }
-      if (b.dataset.building !== undefined) {
-        openBuildingCheck(Number(b.dataset.building));
+      if (b.dataset.openSkill !== undefined) {
+        openSkillCheck(Number(b.dataset.openSkill));
         return;
       }
       if (b.dataset.tab) {
         const targetTab = b.dataset.tab;
-        tab = b.closest('nav') && tab === targetTab ? 'town' : targetTab;
-        draft = [];
+        tab = b.closest('nav') && tab === targetTab ? 'dashboard' : targetTab;
         render();
         window.scrollTo(0, 0);
         return;
@@ -942,7 +915,6 @@
         if (!prepareReplacement()) return;
         state = s;
         rejectedSave = null;
-        draft = [];
         const persisted = save();
         render(false);
         notify(
@@ -968,7 +940,7 @@
       'Mostly met',
       'Goal met',
     ];
-    function openBuildingCheck(i) {
+    function openSkillCheck(i) {
       if (!Number.isInteger(i) || i < 0 || i >= SKILLS.length) return;
       const s = SKILLS[i],
         x = state.skills[i],
@@ -1104,7 +1076,6 @@
         if (syncSharedSave()) render(false);
         refreshDayIfNeeded();
         refreshResetCountdown();
-        draft = [];
         renderHUD();
       }
     });
