@@ -1592,3 +1592,30 @@ body.map-home {
 .skill-symbol>span { display:block; width:24px; height:24px; background:var(--skill); -webkit-mask:var(--symbol) center / contain no-repeat; mask:var(--symbol) center / contain no-repeat; }
 .level-emblem .skill-symbol { width:76px; height:76px; }
 .level-emblem .skill-symbol>span { width:48px; height:48px; }
+
+/* Five skill symbols form a single-screen star dashboard. */
+body.tracker-home { overflow:hidden; }
+body.tracker-home main { height:calc(100vh - var(--hud-height,76px)); height:calc(100dvh - var(--hud-height,76px)); display:flex; flex-direction:column; padding:14px 12px 12px; overflow:hidden; }
+body.tracker-home .tracker-intro { text-align:center; margin:0; flex-shrink:0; }
+body.tracker-home .tracker-intro h2 { margin:0 0 4px; font-size:20px; }
+body.tracker-home .tracker-intro p { margin:0; font-size:13px; }
+.skill-star { position:relative; width:100%; max-width:500px; flex:1; min-height:0; max-height:540px; margin:auto; }
+.star-skill { position:absolute; transform:translate(-50%,-50%); width:clamp(86px,26vw,128px); padding:5px 0; display:flex; flex-direction:column; align-items:center; gap:5px; background:transparent; color:#203c55; box-shadow:none; border-radius:18px; }
+.star-skill .skill-symbol { width:clamp(56px,16vw,76px); height:clamp(56px,16vw,76px); margin:0; border:2px solid var(--skill); box-shadow:0 4px 12px #203c5514; }
+.star-skill .skill-symbol>span { width:34px; height:34px; }
+.star-skill strong { font-size:13px; line-height:1.15; }
+.star-level { font-size:12px; color:#597067; }
+.star-position-0 { left:50%; top:15%; }
+.star-position-1 { left:83%; top:40%; }
+.star-position-2 { left:71%; top:81%; }
+.star-position-3 { left:29%; top:81%; }
+.star-position-4 { left:17%; top:40%; }
+.star-summary { position:absolute; left:50%; top:51%; transform:translate(-50%,-50%); text-align:center; pointer-events:none; }
+.star-summary strong { display:block; font-size:26px; color:#086bad; }
+.star-summary span { font-size:12px; color:#597067; }
+.star-check { position:absolute; top:0; left:calc(50% + 15px); border-radius:50%; width:23px; height:23px; display:grid; place-items:center; background:#267b51; color:white; border:2px solid white; font-size:13px; }
+.star-skill:focus-visible { outline:3px solid #087bd9; outline-offset:3px; }
+.star-skill:active .skill-symbol { transform:scale(.95); }
+.star-reset { flex-shrink:0; text-align:center; font-size:11px; margin:6px 0 0; }
+@media(max-height:650px){ .star-skill .skill-symbol { width:50px; height:50px; } .star-skill .skill-symbol>span { width:28px; height:28px; } .star-skill { gap:3px; } }
+@media(orientation:landscape) and (max-height:500px){ body.tracker-home .tracker-intro { display:none; } .skill-star { max-width:650px; } .star-position-0 { top:20%; } .star-position-2,.star-position-3 { top:76%; } .star-skill .skill-symbol { width:40px; height:40px; } }

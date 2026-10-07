@@ -107,10 +107,10 @@ return '<svg viewBox="0 0 140 110" aria-hidden="true"><ellipse cx="70" cy="99" r
 }
 function village(){
  const entry=dailyEntry(),doneCount=checkedCount(entry);
- return '<section class="tracker-intro"><h2>Your daily progress</h2><p class="muted">'+doneCount+' / 5 skills checked in · '+resetText()+'</p></section><div class="fitness-grid">'+SKILL_DISPLAY_ORDER.map(i=>{
-  const s=SKILLS[i],x=state.skills[i],l=level(x.xp),done=entry&&Number.isInteger(entry.scores[i]),progress=l===99?1:(x.xp-XP[l])/(XP[l+1]-XP[l]);
-  return '<button class="fitness-card" data-building="'+i+'" style="--skill:'+COLORS[i]+'" aria-label="'+s.name+', level '+l+', '+(done?'checked in today':'check in')+'"><div class="row"><strong>'+skillIcon(i)+' '+s.name+'</strong><span class="level-badge">Lv '+l+'</span></div><progress max="1" value="'+progress+'" aria-label="'+s.name+' level progress"></progress><div class="row muted"><span>'+x.xp.toLocaleString()+' XP</span><span>'+(l===99?'MAX':(XP[l+1]-x.xp).toLocaleString()+' to next level')+'</span></div><span class="fitness-title">'+titleFor(i,l)+'</span>'+(l===99?crown(i):'')+'<span class="fitness-status">'+(done?'✓ Checked in · '+entry.scores[i]+'/5':'Check in today →')+'</span></button>';
- }).join('')+'</div>';
+ return '<section class="tracker-intro"><h2>Your daily check-in</h2><p class="muted">Tap a skill and rate your day out of 5.</p></section><div class="skill-star" aria-label="Five fitness skills"><div class="star-summary" aria-live="polite"><strong>'+doneCount+' / 5</strong><span>checked in</span></div>'+SKILL_DISPLAY_ORDER.map((i,position)=>{
+  const s=SKILLS[i],l=level(state.skills[i].xp),done=entry&&Number.isInteger(entry.scores[i]);
+  return '<button class="star-skill star-position-'+position+(done?' is-complete':'')+'" data-building="'+i+'" style="--skill:'+COLORS[i]+'" aria-label="'+s.name+', level '+l+', '+(done?'checked in today, '+entry.scores[i]+' out of 5':'check in out of 5')+'">'+skillIcon(i)+(done?'<span class="star-check" aria-hidden="true">✓</span>':'')+'<strong>'+s.name+'</strong><span class="star-level">Lv '+l+(done?' · '+entry.scores[i]+'/5':'')+'</span></button>';
+ }).join('')+'</div><p class="star-reset muted">'+resetText()+'</p>';
 }
 
 function reward(text){let el=document.createElement('div');el.className='reward';el.textContent=text;document.body.append(el);setTimeout(()=>el.remove(),1900);}
@@ -213,6 +213,7 @@ function renderScreen(){
 
 function render(){
  document.body.classList.remove('map-home');
+ document.body.classList.toggle('tracker-home',tab==='town');
  accrue();awardAchievements();renderHUD();
  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===(tab==='building'?'town':tab)));
  
