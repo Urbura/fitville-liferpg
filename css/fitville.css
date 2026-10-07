@@ -1054,3 +1054,13 @@ header .stats>span {
   .star-skill .star-progress { margin-top: 0; height: 5px; }
   .star-xp { font-size: 9px; }
 }
+
+/* Local Tabler cogwheel matches the dashboard's outline symbols. */
+.settings-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  -webkit-mask: url('../assets/icons/settings.svg') center / contain no-repeat;
+  mask: url('../assets/icons/settings.svg') center / contain no-repeat;
+}
