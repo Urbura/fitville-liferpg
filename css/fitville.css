@@ -103,7 +103,7 @@ body.map-home .scene-building{z-index:3}
 @media(max-width:600px){
  body.map-home{overflow:hidden!important}
  body.map-home main{height:calc(100dvh - var(--hud-height,76px))!important;min-height:0!important;overflow:hidden!important}
- body.map-home #view{position:relative!important;width:100%!important;height:100%!important;min-height:0!important;overflow:hidden!important;padding:0!important;margin:0!important;background:transparent!important}
+ body.map-home #view{position:relative!important;width:100%!important;height:calc(100vh - var(--hud-height,76px))!important;height:calc(100dvh - var(--hud-height,76px))!important;min-height:0!important;overflow:hidden!important;padding:0!important;margin:0!important;background:transparent!important}
  body.map-home .town-heading,body.map-home .map-caption{display:none!important}
  body.map-home .town-hero{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important}
  body.map-home .town-map.illustrated-town{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;aspect-ratio:auto!important;margin:0!important;padding:0!important}

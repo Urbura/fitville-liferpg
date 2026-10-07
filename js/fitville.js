@@ -106,7 +106,7 @@ return '<svg viewBox="0 0 140 110" aria-hidden="true"><ellipse cx="70" cy="99" r
 function village(){
 const l=townLevel();
 const zones=SKILL_DISPLAY_ORDER.map(i=>{const s=SKILLS[i],t=state.skills[i].tier,ready=t<5&&state.coins>=COSTS[t+1];return '<button class="scene-building scene-skill-'+i+'" data-building="'+i+'" aria-label="'+s.name+' building, level '+(t+1)+' — check in or view upgrades">'+(ready?'<span class="scene-upgrade">UPGRADE!</span>':'')+'<span class="sr-only">'+s.name+' Lv '+(t+1)+'</span></button>';}).join('');
-return '<div class="row town-heading"><div><span class="anime-tag">Home</span><h2>'+townTitle()+'</h2></div><span class="pill">Town '+l+' / 26</span></div><div class="town-hero"><div class="town-map illustrated-town" aria-label="Fitville illustrated village"><img class="town-scene" src="assets/fitville-crossroads-mobile.jpg" alt="Illustrated Fitville village with five skill buildings">'+zones+'</div></div><p class="map-caption">Tap a building to check in or view upgrades</p>';
+return '<div class="row town-heading"><div><span class="anime-tag">Home</span><h2>'+townTitle()+'</h2></div><span class="pill">Town '+l+' / 26</span></div><div class="town-hero"><div class="town-map illustrated-town" aria-label="Fitville illustrated village"><img class="town-scene" fetchpriority="high" decoding="async" src="assets/fitville-crossroads-mobile.jpg" alt="Illustrated Fitville village with five skill buildings">'+zones+'</div></div><p class="map-caption">Tap a building to check in or view upgrades</p>';
 }
 function reward(text){let el=document.createElement('div');el.className='reward';el.textContent=text;document.body.append(el);setTimeout(()=>el.remove(),1900);}
 
