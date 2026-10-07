@@ -386,7 +386,10 @@
         ' / 5</strong><span>checked in</span></div>' +
         SKILL_DISPLAY_ORDER.map((i, position) => {
           const s = SKILLS[i],
-            l = level(state.skills[i].xp),
+            xp = state.skills[i].xp,
+            l = level(xp),
+            maxed = l === 99,
+            progress = maxed ? 1 : (xp - XP[l]) / (XP[l + 1] - XP[l]),
             done = entry && Number.isInteger(entry.scores[i]);
           return (
             '<button class="star-skill star-position-' +
@@ -401,6 +404,8 @@
             ', level ' +
             l +
             ', ' +
+            (maxed ? 'maximum level' : XP[l + 1] - xp + ' XP to next level') +
+            ', ' +
             (done ? 'checked in today, ' + entry.scores[i] + ' out of 5' : 'check in out of 5') +
             '"><span class="star-level">Lv ' +
             l +
@@ -410,6 +415,19 @@
             '<strong>' +
             s.name +
             '</strong>' +
+            '<progress class="star-progress" max="1" value="' +
+            progress +
+            '" aria-label="' +
+            s.name +
+            ' XP progress"></progress>' +
+            '<span class="star-xp">' +
+            (maxed
+              ? 'MAX'
+              : (xp - XP[l]).toLocaleString() +
+                ' / ' +
+                (XP[l + 1] - XP[l]).toLocaleString() +
+                ' XP') +
+            '</span>' +
             (done ? '<span class="star-score">' + entry.scores[i] + '/5 today</span>' : '') +
             '</button>'
           );
@@ -633,9 +651,19 @@
       const overallXp = state.skills.reduce((n, s) => n + s.xp, 0),
         overallLevel = level(overallXp),
         display = document.getElementById('total');
-      document.getElementById('overall-level').textContent = 'Overall Level ' + overallLevel;
-      display.textContent = 'Total XP ' + overallXp.toLocaleString();
-      display.title = 'Combined XP across all five fitness skills';
+      document.getElementById('overall-level').textContent = 'Total Level ' + overallLevel;
+      display.textContent =
+        overallXp.toLocaleString() +
+        ' / ' +
+        (overallLevel === 99 ? 'MAX' : XP[overallLevel + 1].toLocaleString()) +
+        ' XP';
+      display.title =
+        overallLevel === 99
+          ? 'Combined XP across all five skills · maximum level'
+          : 'Combined XP across all five skills · ' +
+            (XP[overallLevel + 1] - overallXp).toLocaleString() +
+            ' XP to Total Level ' +
+            (overallLevel + 1);
     }
 
     function renderSettings() {
