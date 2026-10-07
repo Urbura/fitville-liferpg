@@ -1575,3 +1575,14 @@ body.map-home {
 .town-building-art svg { display:block; width:100%; height:auto; }
 .town-building>span:last-child { font-size:12px; }
 .town-building:last-child { grid-column:1 / -1; justify-self:center; width:calc(50% - 6px); }
+
+/* Fitness tracker dashboard */
+.fitness-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.fitness-card { text-align:left; background:#fff; color:#203c55; border:1px solid #b9e4ff; border-top:4px solid var(--skill); padding:16px; box-shadow:0 3px 8px #087bd910; }
+.fitness-card .row { gap:8px; }
+.fitness-card .muted { font-size:12px; }
+.fitness-title { display:block; margin:12px 0; color:var(--skill); font-size:13px; }
+.fitness-status { display:block; color:#086bad; font-size:13px; font-weight:700; }
+.tracker-intro { margin-bottom:18px; }
+.fitness-card .skill-crown { width:65px; }
+@media(max-width:600px){ .fitness-grid { grid-template-columns:1fr; gap:10px; } .fitness-card { padding:13px 16px; } header h1 { max-width:150px; font-size:18px; } .fitness-title { margin:6px 0; } }
