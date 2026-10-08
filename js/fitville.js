@@ -62,10 +62,12 @@
         open.hidden = true;
       }
     }
-    // Five XP per day reaches skill level 99 in 180 days.
-    // Increasing thresholds make early levels quicker and later levels slower.
+    // Five XP per day reaches skill level 99 in 210 days (1,050 total XP).
+    // Start with 5 XP for level 2; each unrounded level cost grows by ~1.42%.
+    // Round cumulative thresholds so rounding does not compound across levels.
+    const XP_GROWTH = 1.0141993624136796;
     const XP = Array.from({ length: 100 }, (_, l) =>
-      l < 1 ? 0 : Math.round(900 * Math.pow((l - 1) / 98, 1.5)),
+      l < 1 ? 0 : Math.round((5 * (Math.pow(XP_GROWTH, l - 1) - 1)) / (XP_GROWTH - 1)),
     );
     function level(x) {
       let l = 1;
