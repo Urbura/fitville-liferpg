@@ -359,11 +359,38 @@
 
     // Dashboard and level celebrations
     const COLORS = ['#7962a6', '#4f7836', '#267b7d', '#ad5b28', '#3b6daa'];
+    // Count distinct check-in days in the Monday–Sunday week, using the daily reset boundary.
+    function weeklyCheckInCount(now = Date.now()) {
+      const today = day(now),
+        date = new Date(today + 'T00:00:00Z'),
+        weekday = (date.getUTCDay() + 6) % 7;
+      date.setUTCDate(date.getUTCDate() - weekday);
+      const monday = date.toISOString().slice(0, 10);
+      return Object.entries(state.days).filter(
+        ([key, entry]) => key >= monday && key <= today && checkedCount(entry) > 0,
+      ).length;
+    }
+    function weeklyCheckInText() {
+      const count = weeklyCheckInCount();
+      return count === 0
+        ? 'Your first check-in this week starts here.'
+        : 'You checked in ' + count + ' ' + (count === 1 ? 'day' : 'days') + ' this week!';
+    }
+    function nextRewardText() {
+      const current = currentTotalLevel(),
+        next = TOTAL_REWARDS.find((milestone) => milestone.level > current);
+      if (!next) return 'All Total Level rewards unlocked!';
+      const themeChanges = next.theme !== totalReward(current).theme;
+      return 'Next reward at Total Level ' + next.level + ': ' + next.title +
+        (themeChanges ? ' + ' + next.themeName + ' background' : '');
+    }
     function dashboard() {
       const entry = dailyEntry(),
         doneCount = checkedCount(entry);
       return (
-        '<section class="tracker-intro"><h2>Your daily check-in</h2><p class="muted">Tap a skill and rate your day out of 5.</p></section><div class="skill-star" aria-label="Five fitness skills"><div class="star-summary" aria-live="polite"><strong>' +
+        '<section class="tracker-intro"><h2>Your daily check-in</h2><p class="muted">Tap a skill and rate your day out of 5.</p><p class="next-reward">' +
+        safeText(nextRewardText()) +
+        '</p></section><div class="skill-star" aria-label="Five fitness skills"><div class="star-summary" aria-live="polite"><strong>' +
         doneCount +
         ' / 5</strong><span>checked in</span></div>' +
         SKILL_DISPLAY_ORDER.map((i, position) => {
@@ -414,7 +441,9 @@
             '</button>'
           );
         }).join('') +
-        '</div><p class="star-reset muted">' +
+        '</div><p class="weekly-check-ins" aria-live="polite">' +
+        weeklyCheckInText() +
+        '</p><p class="star-reset muted">' +
         resetText() +
         '</p>'
       );
@@ -626,9 +655,13 @@
       }
       return reward;
     }
+    function currentTotalLevel() {
+      return DEV && devTotalLevel !== null
+        ? devTotalLevel
+        : level(state.skills.reduce((sum, skill) => sum + skill.xp, 0));
+    }
     function renderHUD() {
-      const overallXp = state.skills.reduce((n, s) => n + s.xp, 0),
-        totalLevel = DEV && devTotalLevel !== null ? devTotalLevel : level(overallXp),
+      const totalLevel = currentTotalLevel(),
         reward = totalReward(totalLevel);
       document.getElementById('overall-level').textContent = 'Total Level ' + totalLevel;
       document.getElementById('overall-title').textContent = reward.title;
