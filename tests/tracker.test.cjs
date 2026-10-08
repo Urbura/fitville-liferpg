@@ -5,9 +5,14 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const vm = require('node:vm');
 const { test } = require('node:test');
+const { createProgression } = require('../js/progression.js');
 
 const source = readFileSync(join(__dirname, '../js/fitville.js'), 'utf8');
 const configSource = readFileSync(join(__dirname, '../js/config.js'), 'utf8');
+const progressionSource = readFileSync(join(__dirname, '../js/progression.js'), 'utf8');
+const configContext = vm.createContext({});
+vm.runInContext(configSource, configContext);
+const config = configContext.FitQuestConfig;
 const startup = '    // Startup and browser lifecycle';
 assert.equal(source.split(startup).length, 2, 'Tracker startup marker must remain unique');
 
@@ -49,30 +54,33 @@ function tracker(now = '2026-10-08T16:00:00Z') {
     return;
 ` + startup);
   vm.runInContext(configSource, context, { filename: 'js/config.js' });
+  vm.runInContext(progressionSource, context, { filename: 'js/progression.js' });
   vm.runInContext(instrumented, context, { filename: 'js/fitville.js', timeout: 1000 });
   assert.ok(context.tracker, 'Tracker logic must load without a startup error');
   return context.tracker;
 }
 
 test('each skill level costs strictly more XP and all boundaries are correct', () => {
-  const t = tracker();
-  assert.equal(t.level(0), 1);
-  for (let l = 2; l <= 50; l++) {
-    assert.equal(t.XP[l] - t.XP[l - 1], l + 3);
-    assert.equal(t.level(t.XP[l] - 1), l - 1);
-    assert.equal(t.level(t.XP[l]), l);
+  const progression = createProgression(config);
+  const { xpThresholds, levelForXP } = progression;
+  assert.equal(levelForXP(0), 1);
+  for (let skillLevel = 2; skillLevel <= 50; skillLevel++) {
+    assert.equal(xpThresholds[skillLevel] - xpThresholds[skillLevel - 1], skillLevel + 3);
+    assert.equal(levelForXP(xpThresholds[skillLevel] - 1), skillLevel - 1);
+    assert.equal(levelForXP(xpThresholds[skillLevel]), skillLevel);
   }
-  assert.equal(t.XP[50], 1421);
-  assert.equal(t.level(100000), 50);
+  assert.equal(xpThresholds[50], 1421);
+  assert.equal(levelForXP(100000), 50);
 });
 
 test('Total Level adds skill levels, ranging from 5 to 250', () => {
-  const t = tracker();
-  assert.equal(t.totalSkillLevel(), 5);
-  t.state().skills[0].xp = 5;
-  assert.equal(t.totalSkillLevel(), 6);
-  t.state().skills.forEach((skill) => { skill.xp = t.XP[50]; });
-  assert.equal(t.totalSkillLevel(), 250);
+  const progression = createProgression(config);
+  const skills = Array.from({ length: 5 }, () => ({ xp: 0 }));
+  assert.equal(progression.calculateTotalLevel(skills), 5);
+  skills[0].xp = 5;
+  assert.equal(progression.calculateTotalLevel(skills), 6);
+  skills.forEach((skill) => { skill.xp = progression.xpThresholds[50]; });
+  assert.equal(progression.calculateTotalLevel(skills), 250);
 });
 
 test('check-ins award rating XP once per skill per reset day, including zero', () => {
@@ -192,10 +200,11 @@ test('malformed saves are rejected without modifying current progress', () => {
 
 test('bonuses use the skill level before check-in and do not stack', () => {
   const t = tracker();
+  const progression = createProgression(config);
   for (const [l, bonus] of [[1, 0], [9, 0], [10, 1], [19, 1], [20, 2], [30, 3], [40, 4], [50, 4]]) {
-    assert.equal(t.skillBonus(l), bonus);
-    assert.equal(t.checkInXP(5, l), 5 + bonus);
-    assert.equal(t.checkInXP(0, l), 0);
+    assert.equal(progression.bonusForLevel(l), bonus);
+    assert.equal(progression.experienceForCheckIn(5, l), 5 + bonus);
+    assert.equal(progression.experienceForCheckIn(0, l), 0);
   }
   t.state().skills[0].xp = t.XP[10] - 1;
   assert.equal(t.recordCheckIn(0, 5).earned, 5);
@@ -208,11 +217,10 @@ test('bonuses use the skill level before check-in and do not stack', () => {
 });
 
 test('perfect check-ins reach skill level 50 in 191 days with bonuses', () => {
-  const t = tracker();
-  let days = 0;
-  while (t.level(t.state().skills[0].xp) < 50) {
-    t.state().days = {};
-    t.recordCheckIn(0, 5);
+  const progression = createProgression(config);
+  let days = 0, experience = 0;
+  while (progression.levelForXP(experience) < 50) {
+    experience += progression.experienceForCheckIn(5, progression.levelForXP(experience));
     days++;
     assert.ok(days <= 191);
   }
@@ -264,4 +272,28 @@ test('configuration keeps skill metadata and rewards internally consistent', () 
   for (let i = 1; i < config.bonusMilestones.length; i++) {
     assert.ok(config.bonusMilestones[i].level > config.bonusMilestones[i - 1].level);
   }
+});
+
+test('reward selection is directly testable without tracker startup', () => {
+  const progression = createProgression(config);
+  for (const reward of config.totalRewards) {
+    assert.equal(progression.rewardForTotalLevel(reward.level).title, reward.title);
+    if (reward.level > 5)
+      assert.notEqual(progression.rewardForTotalLevel(reward.level - 1).title, reward.title);
+  }
+  assert.equal(progression.nextRewardForTotalLevel(50).level, 75);
+  assert.equal(progression.nextRewardForTotalLevel(250), null);
+});
+
+test('progression uses the supplied configuration rather than fixed constants', () => {
+  const custom = JSON.parse(JSON.stringify(config));
+  custom.maxSkillLevel = 3;
+  custom.xp = { firstLevelCost: 2, costIncrease: 3 };
+  custom.bonusMilestones = [{ level: 2, xp: 1 }];
+  custom.totalRewards = [{ level: 5, title: 'Start' }, { level: 15, title: 'Finish' }];
+  const progression = createProgression(custom);
+  assert.deepEqual(progression.xpThresholds, [0, 0, 2, 7]);
+  assert.equal(progression.maxTotalLevel, 15);
+  assert.equal(progression.levelForXP(100), 3);
+  assert.equal(progression.experienceForCheckIn(5, 2), 6);
 });

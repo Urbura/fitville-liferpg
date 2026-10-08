@@ -59,32 +59,19 @@
         open.hidden = true;
       }
     }
-    // Each next level costs one more XP: 5, 6, ... 53.
-    // Level 50 needs 1,421 total XP; perfect daily check-ins with bonuses take 191 days.
-    const MAX_LEVEL = CONFIG.maxSkillLevel;
-    const MIN_TOTAL_LEVEL = SKILLS.length;
-    const MAX_TOTAL_LEVEL = MAX_LEVEL * SKILLS.length;
-    const XP = Array.from({ length: MAX_LEVEL + 1 }, (_, l) => {
-      const steps = Math.max(0, l - 1);
-      return steps * CONFIG.xp.firstLevelCost +
-        (steps * (steps - 1) * CONFIG.xp.costIncrease) / 2;
-    });
-    function level(x) {
-      let l = 1;
-      while (l < MAX_LEVEL && x >= XP[l + 1]) l++;
-      return l;
-    }
-    function skillBonus(l) {
-      let bonus = 0;
-      for (const milestone of CONFIG.bonusMilestones) {
-        if (l < milestone.level) break;
-        bonus = milestone.xp;
-      }
-      return bonus;
-    }
-    function checkInXP(score, l) {
-      return score === 0 ? 0 : score + skillBonus(l);
-    }
+    // Pure progression rules are shared with direct Node tests.
+    const {
+      maxSkillLevel: MAX_LEVEL,
+      minTotalLevel: MIN_TOTAL_LEVEL,
+      maxTotalLevel: MAX_TOTAL_LEVEL,
+      xpThresholds: XP,
+      levelForXP: level,
+      bonusForLevel: skillBonus,
+      experienceForCheckIn: checkInXP,
+      calculateTotalLevel,
+      rewardForTotalLevel: totalReward,
+      nextRewardForTotalLevel,
+    } = globalThis.FitQuestProgression.createProgression(CONFIG);
     function fresh() {
       return {
         coins: 0,
@@ -394,7 +381,7 @@
     }
     function nextRewardText() {
       const current = currentTotalLevel(),
-        next = TOTAL_REWARDS.find((milestone) => milestone.level > current);
+        next = nextRewardForTotalLevel(current);
       if (!next) return 'All Total Level rewards unlocked!';
       const themeChanges = next.theme !== totalReward(current).theme;
       return 'Next reward at Total Level ' + next.level + ': ' + next.title +
@@ -607,16 +594,8 @@
 
     // Header, settings, and screen rendering
     const TOTAL_REWARDS = CONFIG.totalRewards;
-    function totalReward(l) {
-      let reward = TOTAL_REWARDS[0];
-      for (const milestone of TOTAL_REWARDS) {
-        if (l < milestone.level) break;
-        reward = milestone;
-      }
-      return reward;
-    }
     function totalSkillLevel() {
-      return state.skills.reduce((sum, skill) => sum + level(skill.xp), 0);
+      return calculateTotalLevel(state.skills);
     }
     function currentTotalLevel() {
       return DEV && devTotalLevel !== null

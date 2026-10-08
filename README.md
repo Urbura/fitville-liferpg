@@ -24,7 +24,8 @@ Use http://localhost:8000/?dev for developer mode. It previews skill and Total L
 | --- | --- |
 | `index.html` | Page structure, dialog containers, developer controls, and script order |
 | `js/config.js` | Editable skills, titles, colours, progression settings, rewards, backgrounds, and reset settings |
-| `js/fitville.js` | Tracker logic, save handling, UI rendering, celebrations, and browser events |
+| `js/progression.js` | Pure XP, level, bonus, Total Level, and reward-selection calculations |
+| `js/fitville.js` | Check-in coordination, save handling, UI rendering, celebrations, and browser events |
 | `css/fitville.css` | Layout and styling; responsive overrides are grouped at the end |
 | `assets/icons/` | Local SVG icons and their licensing information |
 | `tests/tracker.test.cjs` | Regression checks for the production tracker logic |
@@ -34,7 +35,7 @@ The older `fitville` filenames remain valid and are intentional. Visible app bra
 
 ## Where to edit
 
-Start with **js/config.js** for names, titles, rewards, colours, or balancing. It must load before `js/fitville.js`.
+Start with **js/config.js** for names, titles, rewards, colours, or balancing. Scripts load in this order: `config.js`, `progression.js`, then `fitville.js`.
 
 ### Change a reward title
 
@@ -85,13 +86,14 @@ Install Node.js 22 or newer, then run these commands from the repository folder:
 
 ```sh
 node --check js/config.js
+node --check js/progression.js
 node --check js/fitville.js
 node --test tests/tracker.test.cjs
 ```
 
 Checks cover XP thresholds, Total Levels, rewards, duplicate check-ins, reset boundaries, weekly counts, bonus XP, completion messages, save validation, and configuration consistency.
 
-Tests load the production configuration and tracker code in an isolated environment. The harness currently inserts a test hook before the **Startup and browser lifecycle** comment. Preserve that marker until the logic is separated into directly testable modules.
+Progression tests import `createProgression(config)` from `js/progression.js` directly. Its functions do not depend on a browser, storage, or mutable tracker state. Integration tests load the production configuration, progression module, and tracker code in an isolated environment. The harness currently inserts a test hook before the **Startup and browser lifecycle** comment. Preserve that marker until the logic is separated into directly testable modules.
 
 GitHub runs checks on pushes to main and on pull requests. Deployment depends on successful checks; pull requests do not deploy. These logic checks do not replace phone-screen visual testing.
 
@@ -107,4 +109,20 @@ Both normal loading and backup imports use `readSave()` in `js/fitville.js`. Upd
 
 Run the automated checks and preview the normal dashboard and developer mode. Test the check-in and celebration dialogs on a small screen. If you change an asset, update its version suffix in `index.html` so browsers request the new file.
 
-Future refactoring should separate progression, storage, UI, and developer tools while retaining behaviour and save compatibility.
+Future refactoring should separate storage, UI, and developer tools while retaining behaviour and save compatibility.
+
+## Progression module
+
+Create a calculator from the configuration and pass data into its functions:
+
+```js
+const { createProgression } = require('./js/progression.js');
+const progression = createProgression(config);
+const skillLevel = progression.levelForXP(81); // 10
+const earnedXP = progression.experienceForCheckIn(5, skillLevel); // 6
+const totalLevel = progression.calculateTotalLevel([
+  { xp: 81 }, { xp: 0 }, { xp: 0 }, { xp: 0 }, { xp: 0 },
+]); // 14
+```
+
+In the browser, use `FitQuestProgression.createProgression(FitQuestConfig)`. Each calculator uses the provided configuration. Changing progression formulas belongs in this module; editable values remain in `config.js`. Award XP using the skill level before the check-in.
