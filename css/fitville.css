@@ -1101,3 +1101,25 @@ header .stats #overall-title {
 @media (max-width: 350px) {
   header .stats #overall-title { font-size: 9px; }
 }
+
+/* Compact encouragement and reward preview leave room for the five skill buttons. */
+body.tracker-home .tracker-intro .next-reward {
+  margin: 7px auto 0;
+  max-width: 440px;
+  color: #23516a;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.weekly-check-ins {
+  flex-shrink: 0;
+  text-align: center;
+  color: #23516a;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 7px 0 0;
+}
+@media (max-height: 650px) {
+  body.tracker-home .tracker-intro .next-reward { margin-top: 4px; font-size: 11px; }
+  .weekly-check-ins { margin-top: 3px; font-size: 11px; }
+}
