@@ -400,9 +400,14 @@
     }
     function dashboard() {
       const entry = dailyEntry(),
-        doneCount = checkedCount(entry);
+        doneCount = checkedCount(entry),
+        complete = doneCount === SKILLS.length;
       return (
-        '<section class="tracker-intro"><h2>Your daily check-in</h2><p class="muted">Tap a skill and rate your day out of 5.</p><p class="next-reward">' +
+        '<section class="tracker-intro" aria-live="polite"><h2>' +
+        (complete ? 'Today’s check-in is complete.' : 'Your daily check-in') +
+        '</h2><p class="muted">' +
+        (complete ? 'Every small step adds up.' : 'Tap a skill and rate your day out of 5.') +
+        '</p><p class="next-reward">' +
         safeText(nextRewardText()) +
         '</p></section><div class="skill-star" aria-label="Five fitness skills"><div class="star-summary" aria-live="polite"><strong>' +
         doneCount +

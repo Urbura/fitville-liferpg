@@ -39,7 +39,7 @@ function tracker(now = '2026-10-08T16:00:00Z') {
     globalThis.tracker = {
       XP, MAX_LEVEL, MAX_TOTAL_LEVEL, fresh, level, readSave, recordCheckIn, skillBonus, checkInXP,
       totalSkillLevel, totalReward, TOTAL_REWARDS, weeklyCheckInCount,
-      day, nextReset, nextRewardText, queueLevels,
+      day, nextReset, nextRewardText, queueLevels, dashboard,
       state: () => state,
       setState: (value) => { state = value; },
       preview: (value) => { DEV = value !== null; devTotalLevel = value; },
@@ -226,4 +226,18 @@ test('bonus history round-trips and malformed bonuses are rejected', () => {
   const bad = JSON.parse(raw);
   bad.days[t.day()].bonuses[0] = 5;
   assert.throws(() => t.readSave(JSON.stringify(bad)));
+});
+
+test('completion message appears after all five check-ins, including zero ratings', () => {
+  const t = tracker();
+  assert.match(t.dashboard(), /Your daily check-in/);
+  for (let i = 0; i < 4; i++) t.recordCheckIn(i, i);
+  assert.doesNotMatch(t.dashboard(), /Today’s check-in is complete/);
+  t.recordCheckIn(4, 0);
+  assert.match(t.dashboard(), /Today’s check-in is complete/);
+  assert.match(t.dashboard(), /Every small step adds up/);
+  const tomorrow = tracker('2026-10-09T16:00:00Z');
+  tomorrow.setState(tomorrow.readSave(JSON.stringify(t.state())));
+  assert.doesNotMatch(tomorrow.dashboard(), /Today’s check-in is complete/);
+  assert.match(tomorrow.dashboard(), /Your daily check-in/);
 });
