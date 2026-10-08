@@ -923,7 +923,7 @@
             : 'Backup loaded in this page only. Export before closing; device saving is unavailable.',
         );
       } catch (err) {
-        notify('This file is not a valid Fitness Level Up save.');
+        notify('This file is not a valid FitQuest save.');
       }
     });
     document.getElementById('level-dialog').addEventListener('cancel', (e) => {
@@ -1090,11 +1090,11 @@
       }
     });
   } catch (err) {
-    console.error('Fitness Level Up startup error', err);
+    console.error('FitQuest startup error', err);
     const view = document.getElementById('view');
     if (view) {
       view.innerHTML =
-        '<section class="card"><h2>Fitness Level Up needs a refresh</h2><p>Startup could not finish. Reload to try again. Avoid clearing browser data if you have progress saved here.</p><button id="startup-reload" class="wide">Reload Fitness Level Up</button></section>';
+        '<section class="card"><h2>FitQuest needs a refresh</h2><p>Startup could not finish. Reload to try again. Avoid clearing browser data if you have progress saved here.</p><button id="startup-reload" class="wide">Reload FitQuest</button></section>';
       document.getElementById('startup-reload').addEventListener('click', () => location.reload());
     }
     const nav = document.querySelector('nav');
