@@ -546,8 +546,12 @@
     }
     let celebrations = [],
       celebrationFocus;
-    function queueLevels(i, before, after, firstTotalLevel = false) {
-      if (firstTotalLevel) celebrations.push({ total: true, l: 2 });
+    function queueLevels(i, before, after, totalBefore, totalAfter) {
+      if (totalBefore === 1 && totalAfter > 1) celebrations.push({ total: true, l: 2 });
+      for (const milestone of TOTAL_REWARDS) {
+        if (milestone.level > totalBefore && milestone.level <= totalAfter)
+          celebrations.push({ total: true, l: milestone.level, milestone });
+      }
       for (let l = before + 1; l <= after; l++) celebrations.push({ i, l });
       if (celebrations.length && !document.getElementById('level-dialog').open) {
         celebrationFocus = document.activeElement;
@@ -557,15 +561,21 @@
     function showLevel() {
       const item = celebrations[0];
       if (!item) return;
-      const { i, l, total } = item;
+      const { i, l, total, milestone } = item;
       if (total) {
         document.getElementById('level-content').innerHTML =
           '<span class="anime-tag">TOTAL LEVEL UP</span>' +
           '<h2 id="level-heading"><span class="congratulations">Congratulations!</span>' +
           'You reached Total Level ' + l + '!</h2>' +
-          '<h3>Your first total level-up!</h3>' +
-          '<p>You’re building a healthy habit. Small, consistent steps add up—keep checking in toward your own goals.</p>' +
-          '<p class="muted">Your Total Level combines experience from all five skills. Every check-in can help you move forward.</p>';
+          (milestone
+            ? '<h3>New title: ' + safeText(milestone.title) + '</h3>' +
+              '<p>Your title has updated beside your Total Level.</p>' +
+              (milestone.theme === totalReward(l - 1).theme
+                ? ''
+                : '<p>Your background is now the ' + safeText(milestone.themeName) + ' theme.</p>')
+            : '<h3>Your first total level-up!</h3>' +
+              '<p>You’re building a healthy habit. Small, consistent steps add up—keep checking in toward your own goals.</p>' +
+              '<p class="muted">Your Total Level combines experience from all five skills. Every check-in can help you move forward.</p>');
       } else {
         const unlock =
           l === 99
@@ -634,9 +644,29 @@
     }
 
     // Header, settings, and screen rendering
+    const TOTAL_REWARDS = [
+      { level: 1, title: 'Habit Starter', theme: 'sky', themeName: 'Sky' },
+      { level: 10, title: 'Habit Explorer', theme: 'sky', themeName: 'Sky' },
+      { level: 25, title: 'Steady Adventurer', theme: 'ocean', themeName: 'Ocean' },
+      { level: 50, title: 'Habit Builder', theme: 'meadow', themeName: 'Meadow' },
+      { level: 75, title: 'Wellness Adventurer', theme: 'lavender', themeName: 'Lavender' },
+      { level: 99, title: 'Habit Champion', theme: 'sunrise', themeName: 'Sunrise' },
+    ];
+    function totalReward(l) {
+      let reward = TOTAL_REWARDS[0];
+      for (const milestone of TOTAL_REWARDS) {
+        if (l < milestone.level) break;
+        reward = milestone;
+      }
+      return reward;
+    }
     function renderHUD() {
-      const overallXp = state.skills.reduce((n, s) => n + s.xp, 0);
-      document.getElementById('overall-level').textContent = 'Total Level ' + level(overallXp);
+      const overallXp = state.skills.reduce((n, s) => n + s.xp, 0),
+        totalLevel = level(overallXp),
+        reward = totalReward(totalLevel);
+      document.getElementById('overall-level').textContent = 'Total Level ' + totalLevel;
+      document.getElementById('overall-title').textContent = reward.title;
+      document.body.dataset.theme = reward.theme;
     }
 
     function renderSettings() {
@@ -696,7 +726,7 @@
       state.skills[i].xp += score;
       const after = level(state.skills[i].xp);
       const totalAfter = level(state.skills.reduce((sum, skill) => sum + skill.xp, 0));
-      return { status: 'recorded', earned: score, before, after, firstTotalLevel: totalBefore === 1 && totalAfter > 1, state };
+      return { status: 'recorded', earned: score, before, after, totalBefore, totalAfter, state };
     }
     function submitCheckIn(i, score) {
       const result = recordCheckIn(i, score);
@@ -722,7 +752,7 @@
               ? ' · saved.'
               : ' · temporary; export a backup to keep this progress.'),
       );
-      queueLevels(i, result.before, result.after, result.firstTotalLevel);
+      queueLevels(i, result.before, result.after, result.totalBefore, result.totalAfter);
     }
 
     // User actions and backup import
