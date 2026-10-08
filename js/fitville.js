@@ -642,9 +642,9 @@
     const TOTAL_REWARDS = [
       { level: 1, title: 'Habit Starter', theme: 'sky', themeName: 'Sky' },
       { level: 10, title: 'Habit Explorer', theme: 'sky', themeName: 'Sky' },
-      { level: 20, title: 'Steady Adventurer', theme: 'ocean', themeName: 'Ocean' },
-      { level: 30, title: 'Habit Builder', theme: 'meadow', themeName: 'Meadow' },
-      { level: 40, title: 'Wellness Adventurer', theme: 'lavender', themeName: 'Lavender' },
+      { level: 20, title: 'Habit Builder', theme: 'ocean', themeName: 'Ocean' },
+      { level: 30, title: 'Habit Keeper', theme: 'meadow', themeName: 'Meadow' },
+      { level: 40, title: 'Habit Guardian', theme: 'lavender', themeName: 'Lavender' },
       { level: MAX_LEVEL, title: 'Habit Champion', theme: 'sunrise', themeName: 'Sunrise' },
     ];
     function totalReward(l) {
