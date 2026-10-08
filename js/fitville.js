@@ -1092,6 +1092,8 @@
       headerContent = document.querySelector('header>div');
     if (topNav && headerContent) {
       headerContent.appendChild(topNav);
+      const devOpen = document.getElementById('dev-open');
+      if (devOpen) headerContent.appendChild(devOpen);
       topNav.querySelectorAll('button').forEach((b) => {
         const label = b.textContent.trim();
         b.setAttribute('aria-label', label);
