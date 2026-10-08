@@ -49,6 +49,7 @@
       DEV_REQUESTED = DEV_PARAMS.has('dev') || DEV_PARAMS.get('test') === '1',
       DEV_BACKUP = 'fitville-dev-backup';
     let DEV = DEV_REQUESTED || readSession('fitville-dev-active') === '1';
+    let devTotalLevel = null;
     function setupDevUI() {
       const panel = document.getElementById('dev-tools'),
         open = document.getElementById('dev-open');
@@ -662,7 +663,7 @@
     }
     function renderHUD() {
       const overallXp = state.skills.reduce((n, s) => n + s.xp, 0),
-        totalLevel = level(overallXp),
+        totalLevel = DEV && devTotalLevel !== null ? devTotalLevel : level(overallXp),
         reward = totalReward(totalLevel);
       document.getElementById('overall-level').textContent = 'Total Level ' + totalLevel;
       document.getElementById('overall-title').textContent = reward.title;
@@ -780,6 +781,21 @@
         if (input) input.value = b.dataset.devLevel;
         return;
       }
+      if (DEV && (b.id === 'dev-set-total' || b.dataset.devTotal !== undefined)) {
+        const input = document.getElementById('dev-total-level'),
+          value = b.dataset.devTotal !== undefined ? b.dataset.devTotal : input.value;
+        devTotalLevel = Math.max(1, Math.min(99, Math.floor(Number(value) || 1)));
+        input.value = devTotalLevel;
+        render(false);
+        notify('Total Level ' + devTotalLevel + ' · ' + totalReward(devTotalLevel).title + ' · preview only.');
+        return;
+      }
+      if (DEV && b.id === 'dev-total-auto') {
+        devTotalLevel = null;
+        render(false);
+        notify('Total Level follows combined skill XP again.');
+        return;
+      }
       if (DEV && b.id === 'dev-set-level') {
         const select = document.getElementById('dev-skill'),
           input = document.getElementById('dev-level'),
@@ -799,6 +815,7 @@
         return;
       }
       if (DEV && b.id === 'dev-restore') {
+        devTotalLevel = null;
         const raw = readSession(DEV_BACKUP);
         if (raw === null) {
           notify('No original save backup is available in this session.');
@@ -833,6 +850,7 @@
         removeSession(DEV_BACKUP);
         removeSession('fitville-dev-active');
         DEV = false;
+        devTotalLevel = null;
         const u = new URL(location.href);
         u.searchParams.delete('dev');
         u.searchParams.delete('test');
