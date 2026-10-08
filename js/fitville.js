@@ -63,16 +63,16 @@
         open.hidden = true;
       }
     }
-    // Five XP per day reaches skill level 99 in 210 days (1,050 total XP).
-    // Start with 5 XP for level 2; each unrounded level cost grows by ~1.42%.
-    // Round cumulative thresholds so rounding does not compound across levels.
-    const XP_GROWTH = 1.0141993624136796;
-    const XP = Array.from({ length: 100 }, (_, l) =>
-      l < 1 ? 0 : Math.round((5 * (Math.pow(XP_GROWTH, l - 1) - 1)) / (XP_GROWTH - 1)),
-    );
+    // Each next level costs one more XP: 5, 6, ... 53.
+    // Level 50 needs 1,421 total XP, or 285 days at five XP per day.
+    const MAX_LEVEL = 50;
+    const XP = Array.from({ length: MAX_LEVEL + 1 }, (_, l) => {
+      const steps = Math.max(0, l - 1);
+      return (steps * (steps + 9)) / 2;
+    });
     function level(x) {
       let l = 1;
-      while (l < 99 && x >= XP[l + 1]) l++;
+      while (l < MAX_LEVEL && x >= XP[l + 1]) l++;
       return l;
     }
     function fresh() {
@@ -370,7 +370,7 @@
           const s = SKILLS[i],
             xp = state.skills[i].xp,
             l = level(xp),
-            maxed = l === 99,
+            maxed = l === MAX_LEVEL,
             progress = maxed ? 1 : (xp - XP[l]) / (XP[l + 1] - XP[l]),
             done = entry && Number.isInteger(entry.scores[i]);
           return (
@@ -435,92 +435,57 @@
       );
     }
     const TITLES = [
-      [
-        'Dreamer',
-        'Rest Seeker',
-        'Moon Walker',
-        'Night Guardian',
-        'Dream Weaver',
-        'Rest Keeper',
-        'Moonlight Adept',
-        'Dream Sage',
-        'Twilight Warden',
-        'Rest Champion',
-        'Dream Knight',
-        'Moonlight Master',
-        'Celestial Sleeper',
-        'Dream Sovereign',
-        'Dream Ascendant',
-      ],
-      [
-        'Fresh Starter',
-        'Balanced Bite',
-        'Nourished Explorer',
-        'Garden Guardian',
-        'Balanced Builder',
-        'Nourishment Keeper',
-        'Harvest Adept',
-        'Harvest Sage',
-        'Garden Warden',
-        'Nourishment Champion',
-        'Harvest Knight',
-        'Balance Master',
-        'Nourishment Legend',
-        'Harvest Sovereign',
-        'Nourishment Ascendant',
-      ],
-      [
-        'First Stretch',
-        'Limber Learner',
-        'Flow Seeker',
-        'Flexible Explorer',
-        'Flow Adept',
-        'Mobility Keeper',
-        'Balance Adept',
-        'Flow Sage',
-        'Mobility Warden',
-        'Flexibility Champion',
-        'Flow Knight',
-        'Mobility Master',
-        'Flow Legend',
-        'Flow Sovereign',
-        'Flow Ascendant',
-      ],
-      [
-        'Trail Starter',
-        'Steady Strider',
-        'Distance Seeker',
-        'Swift Runner',
-        'Endurance Adept',
-        'Trail Keeper',
-        'Fleetfoot',
-        'Endurance Sage',
-        'Trail Warden',
-        'Cardio Champion',
-        'Wind Knight',
-        'Endurance Master',
-        'Trail Legend',
-        'Wind Sovereign',
-        'Wind Ascendant',
-      ],
-      [
-        'First Lift',
-        'Iron Learner',
-        'Power Builder',
-        'Iron Guardian',
-        'Strength Adept',
-        'Power Keeper',
-        'Ironheart',
-        'Strength Sage',
-        'Iron Warden',
-        'Strength Champion',
-        'Iron Knight',
-        'Power Master',
-        'Iron Legend',
-        'Iron Sovereign',
-        'Iron Ascendant',
-      ],
-    ];
+  [
+    "Dreamer",
+    "Rest Seeker",
+    "Moon Walker",
+    "Night Guardian",
+    "Dream Weaver",
+    "Rest Keeper",
+    "Moonlight Adept",
+    "Dream Ascendant"
+  ],
+  [
+    "Fresh Starter",
+    "Balanced Bite",
+    "Nourished Explorer",
+    "Garden Guardian",
+    "Balanced Builder",
+    "Nourishment Keeper",
+    "Harvest Adept",
+    "Nourishment Ascendant"
+  ],
+  [
+    "First Stretch",
+    "Limber Learner",
+    "Flow Seeker",
+    "Flexible Explorer",
+    "Flow Adept",
+    "Mobility Keeper",
+    "Balance Adept",
+    "Flow Ascendant"
+  ],
+  [
+    "Trail Starter",
+    "Steady Strider",
+    "Distance Seeker",
+    "Swift Runner",
+    "Endurance Adept",
+    "Trail Keeper",
+    "Fleetfoot",
+    "Wind Ascendant"
+  ],
+  [
+    "First Lift",
+    "Iron Learner",
+    "Power Builder",
+    "Iron Guardian",
+    "Strength Adept",
+    "Power Keeper",
+    "Ironheart",
+    "Iron Ascendant"
+  ]
+];
     const CROWNS = [
       'Moonlight Crown',
       'Harvest Crown',
@@ -530,7 +495,7 @@
     ];
     const SYMBOLS = ['☾', '✿', '◇', 'ϟ', '◆'];
     function titleFor(i, l) {
-      return l === 99 ? TITLES[i][14] : l < 7 ? 'Novice' : TITLES[i][Math.floor(l / 7) - 1];
+      return l === MAX_LEVEL ? TITLES[i][7] : l < 7 ? 'Novice' : TITLES[i][Math.floor(l / 7) - 1];
     }
     function crown(i) {
       return (
@@ -579,21 +544,21 @@
               '<p class="muted">Your Total Level combines experience from all five skills. Every check-in can help you move forward.</p>');
       } else {
         const unlock =
-          l === 99
+          l === MAX_LEVEL
             ? 'Mastery title: ' + titleFor(i, l) + ' · ' + CROWNS[i]
             : l % 7 === 0
               ? 'New title: ' + titleFor(i, l)
               : 'No new item at this level. Next title at level ' +
-                Math.min(99, Math.ceil(l / 7) * 7) +
+                Math.min(MAX_LEVEL, Math.ceil(l / 7) * 7) +
                 '.';
         document.getElementById('level-content').innerHTML =
           '<span class="anime-tag">' + SKILLS[i].name +
           ' level up</span><h2 id="level-heading"><span class="congratulations">Congratulations!</span>You reached level ' +
           l + '!</h2>' +
-          (l === 99 ? crown(i) : '<div class="level-emblem">' + skillIcon(i) + '</div>') +
+          (l === MAX_LEVEL ? crown(i) : '<div class="level-emblem">' + skillIcon(i) + '</div>') +
           '<p><b>' + safeText(unlock) + '</b></p><p class="muted">' +
-          (l === 99
-            ? 'Your skill crown is permanently displayed on your Skills page.'
+          (l === MAX_LEVEL
+            ? 'Your skill crown is displayed in your skill check-in.'
             : 'Current title: ' + titleFor(i, l)) + '</p>';
       }
       document.getElementById('level-next').textContent =
@@ -648,10 +613,10 @@
     const TOTAL_REWARDS = [
       { level: 1, title: 'Habit Starter', theme: 'sky', themeName: 'Sky' },
       { level: 10, title: 'Habit Explorer', theme: 'sky', themeName: 'Sky' },
-      { level: 25, title: 'Steady Adventurer', theme: 'ocean', themeName: 'Ocean' },
-      { level: 50, title: 'Habit Builder', theme: 'meadow', themeName: 'Meadow' },
-      { level: 75, title: 'Wellness Adventurer', theme: 'lavender', themeName: 'Lavender' },
-      { level: 99, title: 'Habit Champion', theme: 'sunrise', themeName: 'Sunrise' },
+      { level: 20, title: 'Steady Adventurer', theme: 'ocean', themeName: 'Ocean' },
+      { level: 30, title: 'Habit Builder', theme: 'meadow', themeName: 'Meadow' },
+      { level: 40, title: 'Wellness Adventurer', theme: 'lavender', themeName: 'Lavender' },
+      { level: MAX_LEVEL, title: 'Habit Champion', theme: 'sunrise', themeName: 'Sunrise' },
     ];
     function totalReward(l) {
       let reward = TOTAL_REWARDS[0];
@@ -784,7 +749,7 @@
       if (DEV && (b.id === 'dev-set-total' || b.dataset.devTotal !== undefined)) {
         const input = document.getElementById('dev-total-level'),
           value = b.dataset.devTotal !== undefined ? b.dataset.devTotal : input.value;
-        devTotalLevel = Math.max(1, Math.min(99, Math.floor(Number(value) || 1)));
+        devTotalLevel = Math.max(1, Math.min(MAX_LEVEL, Math.floor(Number(value) || 1)));
         input.value = devTotalLevel;
         render(false);
         notify('Total Level ' + devTotalLevel + ' · ' + totalReward(devTotalLevel).title + ' · preview only.');
@@ -799,7 +764,7 @@
       if (DEV && b.id === 'dev-set-level') {
         const select = document.getElementById('dev-skill'),
           input = document.getElementById('dev-level'),
-          target = Math.max(1, Math.min(99, Math.floor(Number(input && input.value) || 1))),
+          target = Math.max(1, Math.min(MAX_LEVEL, Math.floor(Number(input && input.value) || 1))),
           indices =
             select && select.value === 'all' ? [0, 1, 2, 3, 4] : [Number(select && select.value)];
         for (const i of indices) {
@@ -1006,11 +971,11 @@
         l = level(x.xp),
         entry = dailyEntry(),
         done = entry && Number.isInteger(entry.scores[i]);
-      const maxed = l === 99,
+      const maxed = l === MAX_LEVEL,
         earned = x.xp - XP[l],
         needed = maxed ? 0 : XP[l + 1] - XP[l],
         progress = maxed ? 1 : earned / needed,
-        nextTitleLevel = Math.min(99, (Math.floor(l / 7) + 1) * 7);
+        nextTitleLevel = Math.min(MAX_LEVEL, (Math.floor(l / 7) + 1) * 7);
       const xpPanel =
         '<section class="popup-progress" aria-label="' +
         s.name +
@@ -1026,7 +991,7 @@
         x.xp.toLocaleString() +
         ' total XP</span><span>' +
         (maxed
-          ? 'Level 99 · MAX'
+          ? 'Level ' + MAX_LEVEL + ' · MAX'
           : earned.toLocaleString() + ' / ' + needed.toLocaleString() + ' XP this level') +
         '</span></div><p>' +
         (maxed
