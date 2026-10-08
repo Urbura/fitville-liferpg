@@ -28,7 +28,9 @@ jobs:
         with:
           node-version: '22'
       - name: Check JavaScript syntax
-        run: node --check js/fitville.js
+        run: |
+          node --check js/config.js
+          node --check js/fitville.js
       - name: Test tracker behavior
         run: node --test tests/tracker.test.cjs
 

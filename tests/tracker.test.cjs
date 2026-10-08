@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const { test } = require('node:test');
 
 const source = readFileSync(join(__dirname, '../js/fitville.js'), 'utf8');
+const configSource = readFileSync(join(__dirname, '../js/config.js'), 'utf8');
 const startup = '    // Startup and browser lifecycle';
 assert.equal(source.split(startup).length, 2, 'Tracker startup marker must remain unique');
 
@@ -47,6 +48,7 @@ function tracker(now = '2026-10-08T16:00:00Z') {
     };
     return;
 ` + startup);
+  vm.runInContext(configSource, context, { filename: 'js/config.js' });
   vm.runInContext(instrumented, context, { filename: 'js/fitville.js', timeout: 1000 });
   assert.ok(context.tracker, 'Tracker logic must load without a startup error');
   return context.tracker;
@@ -240,4 +242,26 @@ test('completion message appears after all five check-ins, including zero rating
   tomorrow.setState(tomorrow.readSave(JSON.stringify(t.state())));
   assert.doesNotMatch(tomorrow.dashboard(), /Today’s check-in is complete/);
   assert.match(tomorrow.dashboard(), /Your daily check-in/);
+});
+
+test('configuration keeps skill metadata and rewards internally consistent', () => {
+  const context = vm.createContext({});
+  vm.runInContext(configSource, context);
+  const config = context.FitQuestConfig;
+  assert.equal(config.skills.length, 5);
+  assert.deepEqual(Array.from(config.skillDisplayOrder).sort(), [0, 1, 2, 3, 4]);
+  for (const skill of config.skills) {
+    assert.ok(skill.name && skill.icon && skill.color && skill.masteryTitle && skill.crown);
+    assert.equal(skill.titles.length, Math.floor((config.maxSkillLevel - 1) / 7));
+  }
+  const maximum = config.maxSkillLevel * config.skills.length;
+  assert.equal(config.totalRewards.at(-1).level, maximum);
+  for (let i = 0; i < config.totalRewards.length; i++) {
+    const reward = config.totalRewards[i];
+    assert.ok(config.themes[reward.theme]);
+    if (i > 0) assert.ok(reward.level > config.totalRewards[i - 1].level);
+  }
+  for (let i = 1; i < config.bonusMilestones.length; i++) {
+    assert.ok(config.bonusMilestones[i].level > config.bonusMilestones[i - 1].level);
+  }
 });

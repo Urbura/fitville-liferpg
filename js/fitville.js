@@ -1,15 +1,11 @@
 (() => {
   try {
-    // Skill definitions and XP thresholds
-    const SKILLS = [
-      { name: 'Sleep', hint: 'Your proposed 5/5 target: 7½–8½ hours of sleep.' },
-      { name: 'Healthy Eating', hint: 'Rate how well you followed your personal eating goals.' },
-      { name: 'Stretching', hint: 'Rate completion of your planned mobility routine.' },
-      { name: 'Cardio', hint: 'Rate completion of your movement or cardio goal.' },
-      { name: 'Strength', hint: 'Rate following your workout plan; planned recovery counts.' },
-    ];
-    const SKILL_DISPLAY_ORDER = [4, 3, 2, 1, 0];
-    const SKILL_SYMBOLS = ['moon', 'salad', 'stretching', 'run', 'barbell'];
+    // Editable names, progression settings, and rewards live in config.js.
+    const CONFIG = globalThis.FitQuestConfig;
+    if (!CONFIG) throw Error('FitQuest configuration did not load');
+    const SKILLS = CONFIG.skills;
+    const SKILL_DISPLAY_ORDER = CONFIG.skillDisplayOrder;
+    const SKILL_SYMBOLS = SKILLS.map((skill) => skill.icon);
     function skillIcon(i) {
       return (
         '<span class="skill-symbol" style="--symbol:url(../assets/icons/' +
@@ -65,12 +61,13 @@
     }
     // Each next level costs one more XP: 5, 6, ... 53.
     // Level 50 needs 1,421 total XP; perfect daily check-ins with bonuses take 191 days.
-    const MAX_LEVEL = 50;
+    const MAX_LEVEL = CONFIG.maxSkillLevel;
     const MIN_TOTAL_LEVEL = SKILLS.length;
     const MAX_TOTAL_LEVEL = MAX_LEVEL * SKILLS.length;
     const XP = Array.from({ length: MAX_LEVEL + 1 }, (_, l) => {
       const steps = Math.max(0, l - 1);
-      return (steps * (steps + 9)) / 2;
+      return steps * CONFIG.xp.firstLevelCost +
+        (steps * (steps - 1) * CONFIG.xp.costIncrease) / 2;
     });
     function level(x) {
       let l = 1;
@@ -78,7 +75,12 @@
       return l;
     }
     function skillBonus(l) {
-      return Math.min(4, Math.floor(l / 10));
+      let bonus = 0;
+      for (const milestone of CONFIG.bonusMilestones) {
+        if (l < milestone.level) break;
+        bonus = milestone.xp;
+      }
+      return bonus;
     }
     function checkInXP(score, l) {
       return score === 0 ? 0 : score + skillBonus(l);
@@ -118,8 +120,8 @@
       timer,
       renderedDay = null,
       dailyResetTimer;
-    const RESET_UTC_HOUR = 9,
-      RESET_UTC_MINUTE = 30,
+    const RESET_UTC_HOUR = CONFIG.dailyReset.utcHour,
+      RESET_UTC_MINUTE = CONFIG.dailyReset.utcMinute,
       RESET_SHIFT = (RESET_UTC_HOUR * 60 + RESET_UTC_MINUTE) * 60 * 1000;
     function day(now = Date.now()) {
       return new Date(now - RESET_SHIFT).toISOString().slice(0, 10);
@@ -173,7 +175,7 @@
       const remaining = Math.max(0, nextReset() - Date.now()),
         hours = Math.floor(remaining / 3600000),
         minutes = Math.floor((remaining % 3600000) / 60000);
-      return 'Resets at 3:30 a.m. CST (UTC−6) · ' + hours + 'h ' + minutes + 'm remaining';
+      return 'Resets at ' + CONFIG.dailyReset.label + ' · ' + hours + 'h ' + minutes + 'm remaining';
     }
 
     function refreshDayIfNeeded() {
@@ -372,7 +374,7 @@
     }
 
     // Dashboard and level celebrations
-    const COLORS = ['#7962a6', '#4f7836', '#267b7d', '#ad5b28', '#3b6daa'];
+    const COLORS = SKILLS.map((skill) => skill.color);
     // Count distinct check-in days in the Monday–Sunday week, using the daily reset boundary.
     function weeklyCheckInCount(now = Date.now()) {
       const today = day(now),
@@ -482,68 +484,11 @@
         (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
       );
     }
-    const TITLES = [
-  [
-    "Dreamer",
-    "Rest Seeker",
-    "Moon Walker",
-    "Night Guardian",
-    "Dream Weaver",
-    "Rest Keeper",
-    "Moonlight Adept",
-    "Dream Ascendant"
-  ],
-  [
-    "Fresh Starter",
-    "Balanced Bite",
-    "Nourished Explorer",
-    "Garden Guardian",
-    "Balanced Builder",
-    "Nourishment Keeper",
-    "Harvest Adept",
-    "Nourishment Ascendant"
-  ],
-  [
-    "First Stretch",
-    "Limber Learner",
-    "Flow Seeker",
-    "Flexible Explorer",
-    "Flow Adept",
-    "Mobility Keeper",
-    "Balance Adept",
-    "Flow Ascendant"
-  ],
-  [
-    "Trail Starter",
-    "Steady Strider",
-    "Distance Seeker",
-    "Swift Runner",
-    "Endurance Adept",
-    "Trail Keeper",
-    "Fleetfoot",
-    "Wind Ascendant"
-  ],
-  [
-    "First Lift",
-    "Iron Learner",
-    "Power Builder",
-    "Iron Guardian",
-    "Strength Adept",
-    "Power Keeper",
-    "Ironheart",
-    "Iron Ascendant"
-  ]
-];
-    const CROWNS = [
-      'Moonlight Crown',
-      'Harvest Crown',
-      'Harmony Crown',
-      'Wind Crown',
-      'Iron Crown',
-    ];
-    const SYMBOLS = ['☾', '✿', '◇', 'ϟ', '◆'];
+    const TITLES = SKILLS.map((skill) => skill.titles);
+    const CROWNS = SKILLS.map((skill) => skill.crown);
+    const SYMBOLS = SKILLS.map((skill) => skill.crownSymbol);
     function titleFor(i, l) {
-      return l === MAX_LEVEL ? TITLES[i][7] : l < 7 ? 'Novice' : TITLES[i][Math.floor(l / 7) - 1];
+      return l === MAX_LEVEL ? SKILLS[i].masteryTitle : l < 7 ? 'Novice' : TITLES[i][Math.floor(l / 7) - 1];
     }
     function crown(i) {
       return (
@@ -595,7 +540,7 @@
         const unlock =
           l === MAX_LEVEL
             ? 'Mastery title: ' + titleFor(i, l) + ' · ' + CROWNS[i]
-            : l % 10 === 0
+            : CONFIG.bonusMilestones.some((milestone) => milestone.level === l)
               ? 'New bonus: +' + skillBonus(l) + ' XP on each check-in rated 1–5.'
               : l % 7 === 0
               ? 'New title: ' + titleFor(i, l)
@@ -661,17 +606,7 @@
     }
 
     // Header, settings, and screen rendering
-    const TOTAL_REWARDS = [
-      { level: 5, title: 'Habit Starter', theme: 'sky', themeName: 'Sky' },
-      { level: 10, title: 'Habit Beginner', theme: 'pearl', themeName: 'Pearl' },
-      { level: 25, title: 'Habit Pathfinder', theme: 'rose', themeName: 'Rose' },
-      { level: 50, title: 'Habit Explorer', theme: 'ice', themeName: 'Ice Blue' },
-      { level: 75, title: 'Habit Wayfinder', theme: 'lagoon', themeName: 'Lagoon' },
-      { level: 100, title: 'Habit Builder', theme: 'ocean', themeName: 'Ocean' },
-      { level: 150, title: 'Habit Keeper', theme: 'meadow', themeName: 'Meadow' },
-      { level: 200, title: 'Habit Guardian', theme: 'lavender', themeName: 'Lavender' },
-      { level: MAX_TOTAL_LEVEL, title: 'Habit Champion', theme: 'sunrise', themeName: 'Sunrise' },
-    ];
+    const TOTAL_REWARDS = CONFIG.totalRewards;
     function totalReward(l) {
       let reward = TOTAL_REWARDS[0];
       for (const milestone of TOTAL_REWARDS) {
@@ -694,6 +629,7 @@
       document.getElementById('overall-level').textContent = 'Total Level ' + totalLevel;
       document.getElementById('overall-title').textContent = reward.title;
       document.body.dataset.theme = reward.theme;
+      document.body.style.setProperty('--tracker-background', CONFIG.themes[reward.theme]);
     }
 
     function renderSettings() {
@@ -1040,8 +976,10 @@
             '</p>') +
         '<p class="muted">Check-in bonus: +' + skillBonus(l) +
         ' XP for ratings 1–5. A 0/5 rating earns 0 XP.</p>' +
-        (l < 40 ? '<p class="muted">Next bonus at skill level ' +
-          ((Math.floor(l / 10) + 1) * 10) + '.</p>' : '') +
+        (CONFIG.bonusMilestones.some((milestone) => milestone.level > l)
+          ? '<p class="muted">Next bonus at skill level ' +
+            CONFIG.bonusMilestones.find((milestone) => milestone.level > l).level + '.</p>'
+          : '') +
         '</section>';
       document.getElementById('check-content').innerHTML =
         '<div class="row"><h2 id="check-heading">' +
