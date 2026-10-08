@@ -621,10 +621,8 @@ html {
 }
 
 #dev-open {
-  position: fixed;
-  z-index: 9997;
-  top: 12px;
-  right: 12px;
+  position: static;
+  z-index: 1;
   background: #d94a4a;
   color: white;
   border-radius: 999px;
@@ -1122,4 +1120,23 @@ body.tracker-home .tracker-intro .next-reward {
 @media (max-height: 650px) {
   body.tracker-home .tracker-intro .next-reward { margin-top: 4px; font-size: 11px; }
   .weekly-check-ins { margin-top: 3px; font-size: 11px; }
+}
+
+/* Keep the test-mode launcher between the brand and Total Level rewards. */
+header>div:has(#dev-open:not([hidden])) {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+header #dev-open {
+  grid-column: 2;
+  grid-row: 1;
+  padding: 6px 8px;
+  min-height: 28px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+header>div:has(#dev-open:not([hidden])) .stats { grid-column: 3; }
+header>div:has(#dev-open:not([hidden])) nav { grid-column: 4; }
+@media (max-width: 420px) {
+  header #dev-open { padding: 5px; font-size: 9px; }
+  header>div:has(#dev-open:not([hidden])) h1 { font-size: 13px; }
 }
