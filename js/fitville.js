@@ -546,9 +546,9 @@
     }
     let celebrations = [],
       celebrationFocus;
-    function queueLevels(i, before, after, firstLevel = false) {
-      for (let l = before + 1; l <= after; l++)
-        celebrations.push({ i, l, firstLevel: firstLevel && l === before + 1 });
+    function queueLevels(i, before, after, firstTotalLevel = false) {
+      if (firstTotalLevel) celebrations.push({ total: true, l: 2 });
+      for (let l = before + 1; l <= after; l++) celebrations.push({ i, l });
       if (celebrations.length && !document.getElementById('level-dialog').open) {
         celebrationFocus = document.activeElement;
         showLevel();
@@ -557,8 +557,17 @@
     function showLevel() {
       const item = celebrations[0];
       if (!item) return;
-      const { i, l, firstLevel } = item,
-        unlock =
+      const { i, l, total } = item;
+      if (total) {
+        document.getElementById('level-content').innerHTML =
+          '<span class="anime-tag">TOTAL LEVEL UP</span>' +
+          '<h2 id="level-heading"><span class="congratulations">Congratulations!</span>' +
+          'You reached Total Level ' + l + '!</h2>' +
+          '<h3>Your first total level-up!</h3>' +
+          '<p>You’re building a healthy habit. Small, consistent steps add up—keep checking in toward your own goals.</p>' +
+          '<p class="muted">Your Total Level combines experience from all five skills. Every check-in can help you move forward.</p>';
+      } else {
+        const unlock =
           l === 99
             ? 'Mastery title: ' + titleFor(i, l) + ' · ' + CROWNS[i]
             : l % 7 === 0
@@ -566,28 +575,16 @@
               : 'No new item at this level. Next title at level ' +
                 Math.min(99, Math.ceil(l / 7) * 7) +
                 '.';
-      document.getElementById('level-content').innerHTML =
-        '<span class="anime-tag">' +
-        SKILLS[i].name +
-        ' level up</span><h2 id="level-heading"><span class="congratulations">Congratulations!</span>You reached level ' +
-        l +
-        '!</h2>' +
-        (l === 99 ? crown(i) : '<div class="level-emblem">' + skillIcon(i) + '</div>') +
-        (firstLevel
-          ? '<h3>Your first level!</h3><p>You have taken the first step toward building your ' +
-            SKILLS[i].name.toLowerCase() +
-            ' habit. This level reflects the progress you recorded toward your own goal.</p>' +
-            '<p>Small steps count. Keep checking in honestly: every point of experience adds up, ' +
-            'and planned rest or recovery can count toward your goal.</p>' +
-            '<p class="muted">Your level tracks your check-ins, rather than measuring your fitness or health. ' +
-            'Your first skill title unlocks at level 7.</p>'
-          : '<p><b>' +
-            safeText(unlock) +
-            '</b></p><p class="muted">' +
-            (l === 99
-              ? 'Your skill crown is permanently displayed on your Skills page.'
-              : 'Current title: ' + titleFor(i, l)) +
-            '</p>');
+        document.getElementById('level-content').innerHTML =
+          '<span class="anime-tag">' + SKILLS[i].name +
+          ' level up</span><h2 id="level-heading"><span class="congratulations">Congratulations!</span>You reached level ' +
+          l + '!</h2>' +
+          (l === 99 ? crown(i) : '<div class="level-emblem">' + skillIcon(i) + '</div>') +
+          '<p><b>' + safeText(unlock) + '</b></p><p class="muted">' +
+          (l === 99
+            ? 'Your skill crown is permanently displayed on your Skills page.'
+            : 'Current title: ' + titleFor(i, l)) + '</p>';
+      }
       document.getElementById('level-next').textContent =
         celebrations.length > 1
           ? 'Next level celebration (' + (celebrations.length - 1) + ' remaining)'
@@ -688,7 +685,7 @@
         existing = dailyEntry();
       if (existing && Number.isInteger(existing.scores[i])) return { status: 'duplicate' };
       const before = level(state.skills[i].xp),
-        firstLevel = state.skills.every((skill) => level(skill.xp) === 1);
+        totalBefore = level(state.skills.reduce((sum, skill) => sum + skill.xp, 0));
       const entry = existing || {
         scores: Array(SKILLS.length).fill(null),
         rates: Array(SKILLS.length).fill(null),
@@ -698,7 +695,8 @@
       state.days[key] = entry;
       state.skills[i].xp += score;
       const after = level(state.skills[i].xp);
-      return { status: 'recorded', earned: score, before, after, firstLevel: firstLevel && after > before, state };
+      const totalAfter = level(state.skills.reduce((sum, skill) => sum + skill.xp, 0));
+      return { status: 'recorded', earned: score, before, after, firstTotalLevel: totalBefore === 1 && totalAfter > 1, state };
     }
     function submitCheckIn(i, score) {
       const result = recordCheckIn(i, score);
@@ -724,7 +722,7 @@
               ? ' · saved.'
               : ' · temporary; export a backup to keep this progress.'),
       );
-      queueLevels(i, result.before, result.after, result.firstLevel);
+      queueLevels(i, result.before, result.after, result.firstTotalLevel);
     }
 
     // User actions and backup import
