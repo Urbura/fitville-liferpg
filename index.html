@@ -50,14 +50,14 @@
         <h3>Preview Total Level Rewards</h3>
         <p class="muted">Preview titles and background colours independently of skill levels. Your saved progress is preserved.</p>
         <label for="dev-total-level">Total Level</label>
-        <input id="dev-total-level" type="number" min="1" max="50" value="1" inputmode="numeric" />
+        <input id="dev-total-level" type="number" min="5" max="250" value="5" inputmode="numeric" />
         <button class="wide" id="dev-set-total">Set Total Level</button>
         <div class="choices">
-          <button data-dev-total="1">1</button><button data-dev-total="10">10</button>
-          <button data-dev-total="20">20</button><button data-dev-total="30">30</button>
-          <button data-dev-total="40">40</button><button data-dev-total="50">50</button>
+          <button data-dev-total="5">5</button><button data-dev-total="50">50</button>
+          <button data-dev-total="100">100</button><button data-dev-total="150">150</button>
+          <button data-dev-total="200">200</button><button data-dev-total="250">250</button>
         </div>
-        <button class="wide" id="dev-total-auto">Use Combined Skill XP</button>
+        <button class="wide" id="dev-total-auto">Use Sum of Skill Levels</button>
         <button class="wide" id="dev-restore">Restore Original Save</button
         ><button class="wide" id="dev-exit">Exit Developer Mode</button>
       </div>
@@ -76,6 +76,6 @@
     <nav aria-label="Main navigation">
       <button data-tab="settings"><span class="settings-icon" aria-hidden="true"></span>Settings</button>
     </nav>
-    <script src="js/fitville.js?v=20261008-test-header"></script>
+    <script src="js/fitville.js?v=20261008-total-250"></script>
   </body>
 </html>
