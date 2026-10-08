@@ -121,15 +121,15 @@ test('weekly encouragement counts distinct days, includes zero scores, excludes 
 
 test('reward milestones have distinct titles and themes and unlock at the correct total', () => {
   const t = tracker();
-  assert.deepEqual(Array.from(t.TOTAL_REWARDS, (r) => r.level), [5, 50, 100, 150, 200, 250]);
-  assert.equal(new Set(t.TOTAL_REWARDS.map((r) => r.title)).size, 6);
-  assert.equal(new Set(t.TOTAL_REWARDS.map((r) => r.theme)).size, 6);
+  assert.deepEqual(Array.from(t.TOTAL_REWARDS, (r) => r.level), [5, 10, 25, 50, 75, 100, 150, 200, 250]);
+  assert.equal(new Set(t.TOTAL_REWARDS.map((r) => r.title)).size, 9);
+  assert.equal(new Set(t.TOTAL_REWARDS.map((r) => r.theme)).size, 9);
   for (const reward of t.TOTAL_REWARDS) {
     assert.equal(t.totalReward(reward.level).title, reward.title);
     if (reward.level > 5) assert.notEqual(t.totalReward(reward.level - 1).title, reward.title);
   }
   t.preview(50);
-  assert.match(t.nextRewardText(), /100: Habit Builder.*Ocean/);
+  assert.match(t.nextRewardText(), /75: Habit Wayfinder.*Lagoon/);
   t.preview(250);
   assert.equal(t.nextRewardText(), 'All Total Level rewards unlocked!');
 });

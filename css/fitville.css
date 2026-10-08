@@ -901,6 +901,17 @@ header>div:has(#dev-open:not([hidden])) nav {
   grid-column: 4;
 }
 
+/* Early Total Level backgrounds. */
+body[data-theme="pearl"] {
+  background: linear-gradient(145deg, #e2e7f0, #f7f9fc);
+}
+body[data-theme="rose"] {
+  background: linear-gradient(145deg, #f7dce5, #fff1f5);
+}
+body[data-theme="lagoon"] {
+  background: linear-gradient(145deg, #bfece2, #e6fbf5);
+}
+
 /* Responsive layout and reduced-motion preferences. */
 
 @media (max-width:600px) {

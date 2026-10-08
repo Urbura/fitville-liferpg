@@ -663,7 +663,10 @@
     // Header, settings, and screen rendering
     const TOTAL_REWARDS = [
       { level: 5, title: 'Habit Starter', theme: 'sky', themeName: 'Sky' },
+      { level: 10, title: 'Habit Beginner', theme: 'pearl', themeName: 'Pearl' },
+      { level: 25, title: 'Habit Pathfinder', theme: 'rose', themeName: 'Rose' },
       { level: 50, title: 'Habit Explorer', theme: 'ice', themeName: 'Ice Blue' },
+      { level: 75, title: 'Habit Wayfinder', theme: 'lagoon', themeName: 'Lagoon' },
       { level: 100, title: 'Habit Builder', theme: 'ocean', themeName: 'Ocean' },
       { level: 150, title: 'Habit Keeper', theme: 'meadow', themeName: 'Meadow' },
       { level: 200, title: 'Habit Guardian', theme: 'lavender', themeName: 'Lavender' },
