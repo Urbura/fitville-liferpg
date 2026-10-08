@@ -1073,3 +1073,31 @@ nav button[data-tab="settings"] .settings-icon {
   top: 50%;
   transform: translate(-50%, -50%);
 }
+
+
+/* Automatic Total Level rewards use lightweight, readable colour themes. */
+body[data-theme="sky"] { background: linear-gradient(145deg, #d8f3ff, #eefbff); }
+body[data-theme="ocean"] { background: linear-gradient(145deg, #c9eef2, #e9f8fc); }
+body[data-theme="meadow"] { background: linear-gradient(145deg, #d8f0df, #f0f9e9); }
+body[data-theme="lavender"] { background: linear-gradient(145deg, #e6def7, #f7f1fc); }
+body[data-theme="sunrise"] { background: linear-gradient(145deg, #ffe7bf, #fff5e5); }
+header .stats {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+header .stats #overall-title {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.2;
+}
+@media (max-width: 600px) {
+  header .stats #overall-title { font-size: 10px; }
+}
+@media (max-width: 350px) {
+  header .stats #overall-title { font-size: 9px; }
+}
