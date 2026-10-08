@@ -1140,3 +1140,6 @@ header>div:has(#dev-open:not([hidden])) nav { grid-column: 4; }
   header #dev-open { padding: 5px; font-size: 9px; }
   header>div:has(#dev-open:not([hidden])) h1 { font-size: 13px; }
 }
+
+/* First Total Level milestone has its own background. */
+body[data-theme="ice"] { background: linear-gradient(145deg, #c4dcf5, #e4edfc); }
