@@ -66,6 +66,8 @@
     // Each next level costs one more XP: 5, 6, ... 53.
     // Level 50 needs 1,421 total XP, or 285 days at five XP per day.
     const MAX_LEVEL = 50;
+    const MIN_TOTAL_LEVEL = SKILLS.length;
+    const MAX_TOTAL_LEVEL = MAX_LEVEL * SKILLS.length;
     const XP = Array.from({ length: MAX_LEVEL + 1 }, (_, l) => {
       const steps = Math.max(0, l - 1);
       return (steps * (steps + 9)) / 2;
@@ -542,7 +544,8 @@
     let celebrations = [],
       celebrationFocus;
     function queueLevels(i, before, after, totalBefore, totalAfter) {
-      if (totalBefore === 1 && totalAfter > 1) celebrations.push({ total: true, l: 2 });
+      if (totalBefore === MIN_TOTAL_LEVEL && totalAfter > MIN_TOTAL_LEVEL)
+        celebrations.push({ total: true, l: MIN_TOTAL_LEVEL + 1 });
       for (const milestone of TOTAL_REWARDS) {
         if (milestone.level > totalBefore && milestone.level <= totalAfter)
           celebrations.push({ total: true, l: milestone.level, milestone });
@@ -570,7 +573,7 @@
                 : '<p>Your background is now the ' + safeText(milestone.themeName) + ' theme.</p>')
             : '<h3>Your first total level-up!</h3>' +
               '<p>You’re building a healthy habit. Small, consistent steps add up—keep checking in toward your own goals.</p>' +
-              '<p class="muted">Your Total Level combines experience from all five skills. Every check-in can help you move forward.</p>');
+              '<p class="muted">Your Total Level adds up all five skill levels. Each skill level-up increases your Total Level.</p>');
       } else {
         const unlock =
           l === MAX_LEVEL
@@ -640,12 +643,12 @@
 
     // Header, settings, and screen rendering
     const TOTAL_REWARDS = [
-      { level: 1, title: 'Habit Starter', theme: 'sky', themeName: 'Sky' },
-      { level: 10, title: 'Habit Explorer', theme: 'sky', themeName: 'Sky' },
-      { level: 20, title: 'Habit Builder', theme: 'ocean', themeName: 'Ocean' },
-      { level: 30, title: 'Habit Keeper', theme: 'meadow', themeName: 'Meadow' },
-      { level: 40, title: 'Habit Guardian', theme: 'lavender', themeName: 'Lavender' },
-      { level: MAX_LEVEL, title: 'Habit Champion', theme: 'sunrise', themeName: 'Sunrise' },
+      { level: 5, title: 'Habit Starter', theme: 'sky', themeName: 'Sky' },
+      { level: 50, title: 'Habit Explorer', theme: 'sky', themeName: 'Sky' },
+      { level: 100, title: 'Habit Builder', theme: 'ocean', themeName: 'Ocean' },
+      { level: 150, title: 'Habit Keeper', theme: 'meadow', themeName: 'Meadow' },
+      { level: 200, title: 'Habit Guardian', theme: 'lavender', themeName: 'Lavender' },
+      { level: MAX_TOTAL_LEVEL, title: 'Habit Champion', theme: 'sunrise', themeName: 'Sunrise' },
     ];
     function totalReward(l) {
       let reward = TOTAL_REWARDS[0];
@@ -655,10 +658,13 @@
       }
       return reward;
     }
+    function totalSkillLevel() {
+      return state.skills.reduce((sum, skill) => sum + level(skill.xp), 0);
+    }
     function currentTotalLevel() {
       return DEV && devTotalLevel !== null
         ? devTotalLevel
-        : level(state.skills.reduce((sum, skill) => sum + skill.xp, 0));
+        : totalSkillLevel();
     }
     function renderHUD() {
       const totalLevel = currentTotalLevel(),
@@ -714,7 +720,7 @@
         existing = dailyEntry();
       if (existing && Number.isInteger(existing.scores[i])) return { status: 'duplicate' };
       const before = level(state.skills[i].xp),
-        totalBefore = level(state.skills.reduce((sum, skill) => sum + skill.xp, 0));
+        totalBefore = totalSkillLevel();
       const entry = existing || {
         scores: Array(SKILLS.length).fill(null),
         rates: Array(SKILLS.length).fill(null),
@@ -724,7 +730,7 @@
       state.days[key] = entry;
       state.skills[i].xp += score;
       const after = level(state.skills[i].xp);
-      const totalAfter = level(state.skills.reduce((sum, skill) => sum + skill.xp, 0));
+      const totalAfter = totalSkillLevel();
       return { status: 'recorded', earned: score, before, after, totalBefore, totalAfter, state };
     }
     function submitCheckIn(i, score) {
@@ -782,7 +788,7 @@
       if (DEV && (b.id === 'dev-set-total' || b.dataset.devTotal !== undefined)) {
         const input = document.getElementById('dev-total-level'),
           value = b.dataset.devTotal !== undefined ? b.dataset.devTotal : input.value;
-        devTotalLevel = Math.max(1, Math.min(MAX_LEVEL, Math.floor(Number(value) || 1)));
+        devTotalLevel = Math.max(MIN_TOTAL_LEVEL, Math.min(MAX_TOTAL_LEVEL, Math.floor(Number(value) || MIN_TOTAL_LEVEL)));
         input.value = devTotalLevel;
         render(false);
         notify('Total Level ' + devTotalLevel + ' · ' + totalReward(devTotalLevel).title + ' · preview only.');
@@ -791,7 +797,7 @@
       if (DEV && b.id === 'dev-total-auto') {
         devTotalLevel = null;
         render(false);
-        notify('Total Level follows combined skill XP again.');
+        notify('Total Level follows the sum of your skill levels again.');
         return;
       }
       if (DEV && b.id === 'dev-set-level') {
