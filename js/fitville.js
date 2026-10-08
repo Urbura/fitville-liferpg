@@ -64,7 +64,7 @@
       }
     }
     // Each next level costs one more XP: 5, 6, ... 53.
-    // Level 50 needs 1,421 total XP, or 285 days at five XP per day.
+    // Level 50 needs 1,421 total XP; perfect daily check-ins with bonuses take 191 days.
     const MAX_LEVEL = 50;
     const MIN_TOTAL_LEVEL = SKILLS.length;
     const MAX_TOTAL_LEVEL = MAX_LEVEL * SKILLS.length;
@@ -76,6 +76,12 @@
       let l = 1;
       while (l < MAX_LEVEL && x >= XP[l + 1]) l++;
       return l;
+    }
+    function skillBonus(l) {
+      return Math.min(4, Math.floor(l / 10));
+    }
+    function checkInXP(score, l) {
+      return score === 0 ? 0 : score + skillBonus(l);
     }
     function fresh() {
       return {
@@ -227,6 +233,12 @@
           !entry.scores.every((n) => n === null || (Number.isInteger(n) && n >= 0 && n <= 5))
         )
           throw Error('Invalid check-in scores');
+        if (entry.bonuses !== undefined &&
+          (!Array.isArray(entry.bonuses) || entry.bonuses.length !== SKILLS.length ||
+            !entry.bonuses.every((bonus, i) =>
+              bonus === null || (entry.scores[i] !== null && Number.isInteger(bonus) &&
+                bonus >= 0 && bonus <= 4 && (entry.scores[i] !== 0 || bonus === 0)))))
+          throw Error('Invalid check-in bonuses');
         if (entry.rates === undefined) entry.rates = Array(SKILLS.length).fill(null);
         if (!Array.isArray(entry.rates)) throw Error('Invalid check-in rates');
         entry.rates = entry.scores.map((score, i) => {
@@ -578,7 +590,9 @@
         const unlock =
           l === MAX_LEVEL
             ? 'Mastery title: ' + titleFor(i, l) + ' · ' + CROWNS[i]
-            : l % 7 === 0
+            : l % 10 === 0
+              ? 'New bonus: +' + skillBonus(l) + ' XP on each check-in rated 1–5.'
+              : l % 7 === 0
               ? 'New title: ' + titleFor(i, l)
               : 'No new item at this level. Next title at level ' +
                 Math.min(MAX_LEVEL, Math.ceil(l / 7) * 7) +
@@ -704,7 +718,7 @@
       if (persist) save();
     }
 
-    // Apply one daily score. XP remains one point per rating point.
+    // Rating XP plus the current skill bonus; zero ratings earn zero XP.
     // Daily check-in updates
     function recordCheckIn(i, score) {
       if (
@@ -725,13 +739,16 @@
         scores: Array(SKILLS.length).fill(null),
         rates: Array(SKILLS.length).fill(null),
       };
+      const earned = checkInXP(score, before);
+      if (entry.bonuses === undefined) entry.bonuses = Array(SKILLS.length).fill(null);
       entry.scores[i] = score;
       entry.rates[i] = 1;
+      entry.bonuses[i] = earned - score;
       state.days[key] = entry;
-      state.skills[i].xp += score;
+      state.skills[i].xp += earned;
       const after = level(state.skills[i].xp);
       const totalAfter = totalSkillLevel();
-      return { status: 'recorded', earned: score, before, after, totalBefore, totalAfter, state };
+      return { status: 'recorded', earned, before, after, totalBefore, totalAfter, state };
     }
     function submitCheckIn(i, score) {
       const result = recordCheckIn(i, score);
@@ -1013,6 +1030,10 @@
             '</strong> at level ' +
             nextTitleLevel +
             '</p>') +
+        '<p class="muted">Check-in bonus: +' + skillBonus(l) +
+        ' XP for ratings 1–5. A 0/5 rating earns 0 XP.</p>' +
+        (l < 40 ? '<p class="muted">Next bonus at skill level ' +
+          ((Math.floor(l / 10) + 1) * 10) + '.</p>' : '') +
         '</section>';
       document.getElementById('check-content').innerHTML =
         '<div class="row"><h2 id="check-heading">' +
@@ -1048,7 +1069,7 @@
                 v +
                 '</strong><span>' +
                 label +
-                '</span></button>',
+                '</span><span>+' + checkInXP(v, l) + ' XP</span></button>',
             ).join('') +
             '</div><p class="muted rating-save-note">Tap a score to save immediately. One check-in per skill each day.</p>');
       document.getElementById('check-dialog').showModal();

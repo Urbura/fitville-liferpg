@@ -37,7 +37,7 @@ function tracker(now = '2026-10-08T16:00:00Z') {
   });
   const instrumented = source.replace(startup, `
     globalThis.tracker = {
-      XP, MAX_LEVEL, MAX_TOTAL_LEVEL, fresh, level, readSave, recordCheckIn,
+      XP, MAX_LEVEL, MAX_TOTAL_LEVEL, fresh, level, readSave, recordCheckIn, skillBonus, checkInXP,
       totalSkillLevel, totalReward, TOTAL_REWARDS, weeklyCheckInCount,
       day, nextReset, nextRewardText, queueLevels,
       state: () => state,
@@ -186,4 +186,44 @@ test('malformed saves are rejected without modifying current progress', () => {
   }
   assert.throws(() => t.readSave('{invalid'));
   assert.equal(JSON.stringify(t.state()), before);
+});
+
+test('bonuses use the skill level before check-in and do not stack', () => {
+  const t = tracker();
+  for (const [l, bonus] of [[1, 0], [9, 0], [10, 1], [19, 1], [20, 2], [30, 3], [40, 4], [50, 4]]) {
+    assert.equal(t.skillBonus(l), bonus);
+    assert.equal(t.checkInXP(5, l), 5 + bonus);
+    assert.equal(t.checkInXP(0, l), 0);
+  }
+  t.state().skills[0].xp = t.XP[10] - 1;
+  assert.equal(t.recordCheckIn(0, 5).earned, 5);
+  t.state().skills[1].xp = t.XP[20];
+  assert.equal(t.recordCheckIn(1, 3).earned, 5);
+  assert.equal(t.state().days[t.day()].bonuses[1], 2);
+  assert.equal(t.recordCheckIn(1, 5).status, 'duplicate');
+  t.state().skills[2].xp = t.XP[40];
+  assert.equal(t.recordCheckIn(2, 0).earned, 0);
+});
+
+test('perfect check-ins reach skill level 50 in 191 days with bonuses', () => {
+  const t = tracker();
+  let days = 0;
+  while (t.level(t.state().skills[0].xp) < 50) {
+    t.state().days = {};
+    t.recordCheckIn(0, 5);
+    days++;
+    assert.ok(days <= 191);
+  }
+  assert.equal(days, 191);
+});
+
+test('bonus history round-trips and malformed bonuses are rejected', () => {
+  const t = tracker();
+  t.state().skills[0].xp = t.XP[40];
+  t.recordCheckIn(0, 5);
+  const raw = JSON.stringify(t.state());
+  assert.equal(JSON.stringify(t.readSave(raw)), raw);
+  const bad = JSON.parse(raw);
+  bad.days[t.day()].bonuses[0] = 5;
+  assert.throws(() => t.readSave(JSON.stringify(bad)));
 });
