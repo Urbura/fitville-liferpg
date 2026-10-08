@@ -675,7 +675,7 @@
     }
 
     function renderSettings() {
-      return '<button class="back-button" data-tab="dashboard">← Back to Dashboard</button><section class="card tools"><h2>⚙ Settings</h2><p class="muted">Progress stays in this browser. Export before switching devices or clearing browser data.</p><button id="export">Export save</button><p><label>Import save backup<br><input id="import" type="file" accept=".json,application/json" style="max-width:100%;margin-top:10px" aria-label="Import save backup"></label></p><button id="restart" class="restart wide">Reset tracker progress</button></section>';
+      return '<button class="back-button" data-tab="dashboard">← Back to Dashboard</button><section class="card tools"><h2>⚙ Settings</h2><p class="muted">Progress stays in this browser. Export before switching devices or clearing browser data.</p><button id="export">Export FitQuest backup</button><p><label>Import FitQuest backup<br><input id="import" type="file" accept=".json,application/json" style="max-width:100%;margin-top:10px" aria-label="Import FitQuest backup"></label></p><button id="restart" class="restart wide">Reset tracker progress</button></section>';
     }
     function renderScreen() {
       if (tab === 'settings') return renderSettings();
@@ -919,7 +919,7 @@
         const a = document.createElement('a');
         a.href = url;
         a.download =
-          (rejectedSave !== null ? 'fitness-level-up-original-save-' : 'fitness-level-up-save-') +
+          (rejectedSave !== null ? 'fitquest-original-save-' : 'fitquest-save-') +
           day() +
           '.json';
         a.click();
