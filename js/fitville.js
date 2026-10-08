@@ -942,38 +942,7 @@
     document.addEventListener('change', async (e) => {
       if (e.target.id !== 'import' || !e.target.files[0]) return;
       try {
-        let s = JSON.parse(await e.target.files[0].text());
-        if (
-          !Number.isFinite(s.coins) ||
-          s.coins < 0 ||
-          !Array.isArray(s.skills) ||
-          s.skills.length !== 5 ||
-          !s.skills.every(
-            (x) =>
-              Number.isFinite(x.xp) &&
-              x.xp >= 0 &&
-              Number.isInteger(x.tier) &&
-              x.tier >= 0 &&
-              x.tier < 6,
-          ) ||
-          !s.days ||
-          typeof s.days !== 'object' ||
-          !Number.isFinite(s.bank) ||
-          s.bank < 0 ||
-          !Number.isFinite(s.last)
-        )
-          throw Error();
-        for (const v of Object.values(s.days)) {
-          if (
-            !Array.isArray(v.scores) ||
-            v.scores.length !== 5 ||
-            !v.scores.every((n) => n === null || (Number.isInteger(n) && n >= 0 && n <= 5)) ||
-            !Array.isArray(v.rates) ||
-            v.rates.length !== 5 ||
-            !v.rates.every((n, i) => (v.scores[i] === null ? n === null : LEGACY_RATES.includes(n)))
-          )
-            throw Error();
-        }
+        const s = readSave(await e.target.files[0].text());
         if (!confirm('Replace progress on this device with this backup?')) return;
         if (!prepareReplacement()) return;
         state = s;
