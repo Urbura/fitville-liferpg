@@ -86,6 +86,8 @@
         bank: 0,
       };
     }
+    // Save parsing and compatibility checks live in storage.js.
+    const { readSave } = globalThis.FitQuestStorage.createStorage(CONFIG);
     // Load and protect saved progress
     let state = fresh(),
       storageOK = true,
@@ -191,8 +193,6 @@
       document.querySelectorAll('.star-reset').forEach((el) => (el.textContent = resetText()));
     }
 
-    // Save parsing and compatibility checks live in storage.js.
-    const { readSave } = globalThis.FitQuestStorage.createStorage(CONFIG);
     // Explicit import/reset may replace a save only after its current snapshot is readable.
     function prepareReplacement() {
       try {
@@ -1104,6 +1104,23 @@
         '" data-editing="' + editing + '">View progress</button>';
       if (!document.getElementById('check-dialog').open)
         document.getElementById('check-dialog').showModal();
+    }
+
+    // Tests can inspect tracker logic without modifying this source file.
+    // Normal browsers never provide this hook, so startup is unchanged.
+    if (typeof globalThis.__fitQuestTestHook === 'function') {
+      globalThis.__fitQuestTestHook({
+        XP, MAX_LEVEL, MAX_TOTAL_LEVEL, fresh, level, readSave, recordCheckIn,
+        editCheckIn, skillBonus, checkInXP, totalSkillLevel, totalReward,
+        TOTAL_REWARDS, weeklyCheckInCount, day, nextReset, nextRewardText,
+        queueLevels, dashboard, openSkillCheck, totalRewardsPanel, rewardBadge,
+        dialogHTML: () => document.getElementById('check-content').innerHTML,
+        state: () => state,
+        setState: (value) => { state = value; },
+        preview: (value) => { DEV = value !== null; devTotalLevel = value; },
+        queued: () => celebrations,
+      });
+      return;
     }
 
     // Startup and browser lifecycle
