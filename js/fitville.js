@@ -612,8 +612,41 @@
         reward = totalReward(totalLevel);
       document.getElementById('overall-level').textContent = 'Total Level ' + totalLevel;
       document.getElementById('overall-title').textContent = reward.title;
+      if (document.getElementById('total-dialog').open)
+        document.getElementById('total-content').innerHTML = totalRewardsPanel();
       document.body.dataset.theme = reward.theme;
       document.body.style.setProperty('--tracker-background', CONFIG.themes[reward.theme]);
+    }
+
+    function totalRewardsPanel() {
+      const current = currentTotalLevel(), next = nextRewardForTotalLevel(current);
+      return '<p class="total-current"><strong>Total Level ' + current + '</strong> / ' +
+        MAX_TOTAL_LEVEL + '</p><p class="muted">The sum of your five skill levels.' +
+        (DEV && devTotalLevel !== null ? ' Developer preview.' : '') +
+        '</p><progress class="total-progress" max="' + (MAX_TOTAL_LEVEL - MIN_TOTAL_LEVEL) +
+        '" value="' + (current - MIN_TOTAL_LEVEL) +
+        '" aria-label="Progress from starting Total Level to maximum"></progress><p class="next-reward">' +
+        safeText(next ? (next.level - current) + ' more Total Levels to unlock ' + next.title + '.' :
+          'All Total Level rewards unlocked!') + '</p><ol class="total-rewards">' +
+        TOTAL_REWARDS.map((milestone) => {
+          const unlocked = current >= milestone.level;
+          const needed = Math.max(1, milestone.level - MIN_TOTAL_LEVEL);
+          const progress = unlocked ? needed : Math.max(0, current - MIN_TOTAL_LEVEL);
+          return '<li class="total-milestone' + (unlocked ? ' is-unlocked' : '') +
+            (next && next.level === milestone.level ? ' is-next' : '') +
+            '"><div class="row"><strong>Level ' + milestone.level + '</strong><span class="milestone-status">' +
+            (unlocked ? '✓ Unlocked' : next && next.level === milestone.level ? 'Next reward' : 'Locked') +
+            '</span></div><h3>' + safeText(milestone.title) +
+            '</h3><p class="muted">' + safeText(milestone.themeName) +
+            ' background</p><progress max="' + needed + '" value="' + progress +
+            '" aria-label="' + safeText(milestone.title) + ' unlock progress"></progress>' +
+            (unlocked ? '' : '<small>' + (milestone.level - current) + ' Total Levels remaining</small>') +
+            '</li>';
+        }).join('') + '</ol>';
+    }
+    function openTotalRewards() {
+      document.getElementById('total-content').innerHTML = totalRewardsPanel();
+      document.getElementById('total-dialog').showModal();
     }
 
     function renderSettings() {
@@ -757,6 +790,14 @@
       if (!b) return;
       if (syncSharedSave()) render(false);
       refreshDayIfNeeded();
+      if (b.id === 'overall-level') {
+        openTotalRewards();
+        return;
+      }
+      if (b.id === 'total-close') {
+        document.getElementById('total-dialog').close();
+        return;
+      }
       if (b.id === 'recovery-reload') {
         location.reload();
         return;
