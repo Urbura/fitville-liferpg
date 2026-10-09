@@ -14,9 +14,14 @@ const storageSource = readFileSync(join(__dirname, '../js/storage.js'), 'utf8');
 const configContext = vm.createContext({});
 vm.runInContext(configSource, configContext);
 const config = configContext.FitQuestConfig;
+// The tracker is still a browser script. This marker lets tests expose its
+// functions without starting timers, event listeners, or the full interface.
+// Keep the marker in fitville.js until the UI is extracted into its own module.
 const startup = '    // Startup and browser lifecycle';
 assert.equal(source.split(startup).length, 2, 'Tracker startup marker must remain unique');
 
+// Build a fresh, isolated app for each test with fake browser storage and time.
+// No real browser or saved user data is touched.
 function tracker(now = '2026-10-08T16:00:00Z') {
   const storage = () => {
     const data = new Map();
@@ -42,6 +47,7 @@ function tracker(now = '2026-10-08T16:00:00Z') {
     document: { addEventListener() {}, getElementById: node },
     console: { error: (...args) => { throw new Error(args.map(String).join(' ')); } },
   });
+  // Expose selected internal functions for tests, then stop before browser startup.
   const instrumented = source.replace(startup, `
     globalThis.tracker = {
       XP, MAX_LEVEL, MAX_TOTAL_LEVEL, fresh, level, readSave, recordCheckIn, editCheckIn, skillBonus, checkInXP,
@@ -62,6 +68,8 @@ function tracker(now = '2026-10-08T16:00:00Z') {
   assert.ok(context.tracker, 'Tracker logic must load without a startup error');
   return context.tracker;
 }
+
+// XP and level progression
 
 test('each skill level costs strictly more XP and all boundaries are correct', () => {
   const progression = createProgression(config);
@@ -85,6 +93,8 @@ test('Total Level adds skill levels, ranging from 5 to 250', () => {
   skills.forEach((skill) => { skill.xp = progression.xpThresholds[50]; });
   assert.equal(progression.calculateTotalLevel(skills), 250);
 });
+
+// Daily check-ins and reset timing
 
 test('check-ins award rating XP once per skill per reset day, including zero', () => {
   const t = tracker();
@@ -132,6 +142,8 @@ test('weekly encouragement counts distinct days, includes zero scores, excludes 
   assert.equal(t.weeklyCheckInCount(Date.parse('2026-10-05T09:30:00Z')), 1);
 });
 
+// Total Level rewards and celebrations
+
 test('reward milestones have distinct titles and themes and unlock at the correct total', () => {
   const t = tracker();
   assert.deepEqual(Array.from(t.TOTAL_REWARDS, (r) => r.level), [5, 10, 25, 50, 75, 100, 150, 200, 250]);
@@ -160,6 +172,8 @@ test('first Total Level and reward celebrations queue once, with skill celebrati
   later.queueLevels(0, 10, 10, 50, 50);
   assert.equal(later.queued().length, 0);
 });
+
+// Saved progress and older-save compatibility
 
 test('current saves round-trip without losing XP or check-in history', () => {
   const t = tracker();
@@ -201,6 +215,8 @@ test('malformed saves are rejected without modifying current progress', () => {
   assert.equal(JSON.stringify(t.state()), before);
 });
 
+// XP bonuses and milestone behavior
+
 test('bonuses use the skill level before check-in and do not stack', () => {
   const t = tracker();
   const progression = createProgression(config);
@@ -241,6 +257,8 @@ test('bonus history round-trips and malformed bonuses are rejected', () => {
   assert.throws(() => t.readSave(JSON.stringify(bad)));
 });
 
+// Check-in interface and completion messages
+
 test('completion message appears after all five check-ins, including zero ratings', () => {
   const t = tracker();
   assert.match(t.dashboard(), /Your daily check-in/);
@@ -254,6 +272,8 @@ test('completion message appears after all five check-ins, including zero rating
   assert.doesNotMatch(tomorrow.dashboard(), /Today’s check-in is complete/);
   assert.match(tomorrow.dashboard(), /Your daily check-in/);
 });
+
+// Configuration and progression module boundaries
 
 test('configuration keeps skill metadata and rewards internally consistent', () => {
   const context = vm.createContext({});
@@ -300,6 +320,8 @@ test('progression uses the supplied configuration rather than fixed constants', 
   assert.equal(progression.levelForXP(100), 3);
   assert.equal(progression.experienceForCheckIn(5, 2), 6);
 });
+
+// Editing an existing check-in
 
 test('corrections replace XP and remain one daily check-in', () => {
   const t = tracker();
@@ -359,6 +381,8 @@ test('malformed original bonus metadata is rejected', () => {
   t.state().days[t.day()].bonusBases[0] = 99;
   assert.throws(() => t.readSave(JSON.stringify(t.state())));
 });
+
+// Dialog and reward screen rendering
 
 test('completed skill dialog offers editing with the current rating selected', () => {
   const t = tracker();
