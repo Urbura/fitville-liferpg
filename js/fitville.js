@@ -1051,8 +1051,10 @@
             nextTitleLevel +
             '</p>') +
         (CONFIG.bonusMilestones.some((milestone) => milestone.level > l)
-          ? '<p class="muted">Next bonus at skill level ' +
-            CONFIG.bonusMilestones.find((milestone) => milestone.level > l).level + '.</p>'
+          ? '<p class="muted">+' +
+            CONFIG.bonusMilestones.find((milestone) => milestone.level > l).xp +
+            ' XP Bonus at Level ' +
+            CONFIG.bonusMilestones.find((milestone) => milestone.level > l).level + '</p>'
           : '') +
         '</section>';
       document.getElementById('check-content').innerHTML =
