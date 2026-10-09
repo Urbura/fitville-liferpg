@@ -90,13 +90,14 @@ Install Node.js 22 or newer, then run these commands from the repository folder:
 ```sh
 node --check js/config.js
 node --check js/progression.js
+node --check js/storage.js
 node --check js/fitville.js
 node --test tests/tracker.test.cjs
 ```
 
 Checks cover XP thresholds, Total Levels, rewards, duplicate check-ins, reset boundaries, weekly counts, bonus XP, completion messages, save validation, and configuration consistency.
 
-Progression tests import `createProgression(config)` from `js/progression.js` directly. Its functions do not depend on a browser, storage, or mutable tracker state. Integration tests load the production configuration, progression module, and tracker code in an isolated environment. The harness currently inserts a test hook before the **Startup and browser lifecycle** comment. Preserve that marker until the logic is separated into directly testable modules.
+Progression tests import `createProgression(config)` from `js/progression.js` directly. Its functions do not depend on a browser, storage, or mutable tracker state. Integration tests load the production configuration, progression module, storage module, and tracker code in an isolated environment. The tests are grouped by topic and each `test('description', ...)` states the behavior it expects. `assert.equal` checks an exact value; `assert.throws` checks that invalid data is rejected. The harness currently inserts a test hook before the **Startup and browser lifecycle** comment. Preserve that marker until the logic is separated into directly testable modules.
 
 GitHub runs checks on pushes to main and on pull requests. Deployment depends on successful checks; pull requests do not deploy. These logic checks do not replace phone-screen visual testing.
 
