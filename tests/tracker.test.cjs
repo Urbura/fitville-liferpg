@@ -45,7 +45,7 @@ function tracker(now = '2026-10-08T16:00:00Z') {
     globalThis.tracker = {
       XP, MAX_LEVEL, MAX_TOTAL_LEVEL, fresh, level, readSave, recordCheckIn, editCheckIn, skillBonus, checkInXP,
       totalSkillLevel, totalReward, TOTAL_REWARDS, weeklyCheckInCount,
-      day, nextReset, nextRewardText, queueLevels, dashboard, openSkillCheck,
+      day, nextReset, nextRewardText, queueLevels, dashboard, openSkillCheck, totalRewardsPanel,
       dialogHTML: () => document.getElementById('check-content').innerHTML,
       state: () => state,
       setState: (value) => { state = value; },
@@ -367,4 +367,18 @@ test('completed skill dialog offers editing with the current rating selected', (
   assert.match(t.dialogHTML(), /data-edit-score="2" data-skill="0" data-day="2026-10-08" aria-pressed="true"/);
   assert.match(t.dialogHTML(), /This still counts as one check-in/);
   assert.doesNotMatch(t.dialogHTML(), /data-quick-score/);
+});
+
+test('Total Level roadmap follows configured rewards and unlock boundaries', () => {
+  const t = tracker();
+  for (const current of [5, 9, 10, 24, 25, 249, 250]) {
+    t.preview(current);
+    const panel = t.totalRewardsPanel();
+    assert.equal((panel.match(/class="total-milestone/g) || []).length, config.totalRewards.length);
+    assert.equal((panel.match(/✓ Unlocked/g) || []).length,
+      config.totalRewards.filter(reward => reward.level <= current).length);
+    for (const reward of config.totalRewards) assert.ok(panel.includes(reward.title));
+    if (current === 250) assert.match(panel, /All Total Level rewards unlocked!/);
+    else assert.match(panel, /Next reward/);
+  }
 });
