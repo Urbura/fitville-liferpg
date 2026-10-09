@@ -843,6 +843,7 @@
         (DEV ? ' · preview only.' : persisted ? ' · saved.' : ' · temporary; export a backup.'));
     }
     function submitCheckIn(i, score) {
+      const earnedBefore = DEV ? [] : earnedAchievements();
       const result = recordCheckIn(i, score);
       if (result.status === 'invalid') return;
       document.getElementById('check-dialog').close();
@@ -850,7 +851,6 @@
         notify(SKILLS[i].name + ' is already checked in today.');
         return;
       }
-      const earnedBefore = DEV ? [] : earnedAchievements();
       const persisted = save();
       render(false);
       // A newer shared save can replace this state during saving.
