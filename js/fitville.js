@@ -445,7 +445,7 @@
                 (XP[l + 1] - XP[l]).toLocaleString() +
                 ' XP') +
             '</span>' +
-            (done ? '<span class="star-score">' + entry.scores[i] + '/5 today</span>' : '') +
+            (done ? '<span class="star-score">Done · ' + entry.scores[i] + '/5</span>' : '') +
             '</button>'
           );
         }).join('') +
