@@ -21,25 +21,30 @@
     const KEY = 'fitville-v1';
     // Browser storage and developer session
     const sessionFallback = new Map();
-    function readSession(key) {
-      if (sessionFallback.has(key)) return sessionFallback.get(key);
+    // Session storage is optional (for example, in restricted browser modes).
+    // Keep the in-memory fallback authoritative for writes in this tab.
+    function sessionOperation(action, key, value) {
+      if (action === 'read' && sessionFallback.has(key))
+        return sessionFallback.get(key);
+      if (action === 'write') sessionFallback.set(key, value);
+      if (action === 'remove') sessionFallback.set(key, null);
       try {
-        return sessionStorage.getItem(key);
+        if (action === 'read') return sessionStorage.getItem(key);
+        if (action === 'write') sessionStorage.setItem(key, value);
+        if (action === 'remove') sessionStorage.removeItem(key);
       } catch (err) {
-        return null;
+        // Browser storage may be unavailable; the fallback remains usable.
       }
+      return null;
+    }
+    function readSession(key) {
+      return sessionOperation('read', key);
     }
     function writeSession(key, value) {
-      sessionFallback.set(key, value);
-      try {
-        sessionStorage.setItem(key, value);
-      } catch (err) {}
+      sessionOperation('write', key, value);
     }
     function removeSession(key) {
-      sessionFallback.set(key, null);
-      try {
-        sessionStorage.removeItem(key);
-      } catch (err) {}
+      sessionOperation('remove', key);
     }
     const DEV_PARAMS = new URLSearchParams(location.search),
       DEV_REQUESTED = DEV_PARAMS.has('dev') || DEV_PARAMS.get('test') === '1',
