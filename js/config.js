@@ -42,7 +42,7 @@ globalThis.FitQuestConfig = {
   "skills": [
     {
       "name": "Sleep",
-      "hint": "Your proposed 5/5 target: 7½–8½ hours of sleep.",
+      "hint": "How close were you to your 7½–8½ hour sleep goal?",
       "icon": "moon",
       "color": "#7962a6",
       "titles": [
@@ -60,7 +60,7 @@ globalThis.FitQuestConfig = {
     },
     {
       "name": "Healthy Eating",
-      "hint": "Rate how well you followed your personal eating goals.",
+      "hint": "How well did you meet your eating goals today?",
       "icon": "salad",
       "color": "#4f7836",
       "titles": [
@@ -78,7 +78,7 @@ globalThis.FitQuestConfig = {
     },
     {
       "name": "Stretching",
-      "hint": "Rate completion of your planned mobility routine.",
+      "hint": "How well did you meet your stretching goal today?",
       "icon": "stretching",
       "color": "#267b7d",
       "titles": [
@@ -96,7 +96,7 @@ globalThis.FitQuestConfig = {
     },
     {
       "name": "Cardio",
-      "hint": "Rate completion of your movement or cardio goal.",
+      "hint": "How well did you meet your movement or cardio goal today?",
       "icon": "run",
       "color": "#ad5b28",
       "titles": [
@@ -114,7 +114,7 @@ globalThis.FitQuestConfig = {
     },
     {
       "name": "Strength",
-      "hint": "Rate following your workout plan; planned recovery counts.",
+      "hint": "How well did you follow your workout plan today?",
       "icon": "barbell",
       "color": "#3b6daa",
       "titles": [

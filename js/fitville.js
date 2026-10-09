@@ -1076,8 +1076,8 @@
             resetText() +
             '</p>'
           : '<p>' +
-            (editing ? 'Choose the correct rating. This replaces today’s rating and adjusts its XP.' : s.hint) +
-            '</p><p class="rating-intro">Rate progress toward your own goal. Planned rest or recovery can count as meeting your goal.</p><div class="scores guided-scores" role="group" aria-label="' +
+            (editing ? 'Choose your corrected rating.' : s.hint) +
+            '</p><div class="scores guided-scores" role="group" aria-label="' +
             s.name +
             ' score">' +
             RATING_GUIDANCE.map(
@@ -1101,8 +1101,8 @@
                   : ('+' + checkInXP(v, l) + ' XP')) + '</span></button>',
             ).join('') +
             '</div><p class="muted rating-save-note">' +
-            (editing ? 'Tap a score to save your correction. This still counts as one check-in.' :
-              'Tap a score to save immediately. One check-in per skill each day.') + '</p>') +
+            (editing ? 'Tap to save your correction.' :
+              'Tap to save. You can edit today’s rating.') + '</p><details class="rating-help"><summary>How ratings work</summary><p class="rating-intro">Rate progress toward your own goal. Planned rest or recovery can count as meeting your goal. One check-in per skill each day; corrections replace its rating and adjust XP.</p></details>') +
         xpPanel;
       if (!document.getElementById('check-dialog').open)
         document.getElementById('check-dialog').showModal();
