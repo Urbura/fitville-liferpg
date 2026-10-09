@@ -14,12 +14,6 @@ const storageSource = readFileSync(join(__dirname, '../js/storage.js'), 'utf8');
 const configContext = vm.createContext({});
 vm.runInContext(configSource, configContext);
 const config = configContext.FitQuestConfig;
-// The tracker is still a browser script. This marker lets tests expose its
-// functions without starting timers, event listeners, or the full interface.
-// Keep the marker in fitville.js until the UI is extracted into its own module.
-const startup = '    // Startup and browser lifecycle';
-assert.equal(source.split(startup).length, 2, 'Tracker startup marker must remain unique');
-
 // Build a fresh, isolated app for each test with fake browser storage and time.
 // No real browser or saved user data is touched.
 function tracker(now = '2026-10-08T16:00:00Z') {
@@ -47,24 +41,12 @@ function tracker(now = '2026-10-08T16:00:00Z') {
     document: { addEventListener() {}, getElementById: node },
     console: { error: (...args) => { throw new Error(args.map(String).join(' ')); } },
   });
-  // Expose selected internal functions for tests, then stop before browser startup.
-  const instrumented = source.replace(startup, `
-    globalThis.tracker = {
-      XP, MAX_LEVEL, MAX_TOTAL_LEVEL, fresh, level, readSave, recordCheckIn, editCheckIn, skillBonus, checkInXP,
-      totalSkillLevel, totalReward, TOTAL_REWARDS, weeklyCheckInCount,
-      day, nextReset, nextRewardText, queueLevels, dashboard, openSkillCheck, totalRewardsPanel, rewardBadge,
-      dialogHTML: () => document.getElementById('check-content').innerHTML,
-      state: () => state,
-      setState: (value) => { state = value; },
-      preview: (value) => { DEV = value !== null; devTotalLevel = value; },
-      queued: () => celebrations,
-    };
-    return;
-` + startup);
+  // The application calls this hook before browser startup.
+  context.__fitQuestTestHook = (api) => { context.tracker = api; };
   vm.runInContext(configSource, context, { filename: 'js/config.js' });
   vm.runInContext(progressionSource, context, { filename: 'js/progression.js' });
   vm.runInContext(storageSource, context, { filename: 'js/storage.js' });
-  vm.runInContext(instrumented, context, { filename: 'js/fitville.js', timeout: 1000 });
+  vm.runInContext(source, context, { filename: 'js/fitville.js', timeout: 1000 });
   assert.ok(context.tracker, 'Tracker logic must load without a startup error');
   return context.tracker;
 }
