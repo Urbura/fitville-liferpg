@@ -409,7 +409,7 @@
           ACHIEVEMENTS.filter(a => a.category === category).map(a => {
             const progress = achievementProgress(a, stats), unlocked = progress >= a.goal;
             return '<div class="achievement ' + (unlocked ? 'unlocked' : 'locked') + '">' +
-              '<span class="achievement-symbol" aria-hidden="true">' + (unlocked ? '🏅' : '🔒') + '</span>' +
+              '<span class="achievement-symbol" aria-hidden="true"><img src="assets/icons/collection-' + (unlocked ? 'unlocked' : 'locked') + '.svg" alt="" width="40" height="40"></span>' +
               '<div><strong>' + safeText(a.name) + '</strong><small>' + safeText(a.description) +
               '</small><progress max="' + a.goal + '" value="' + Math.min(a.goal, progress) +
               '" aria-label="' + safeText(a.name) + ' progress"></progress><small>' +
