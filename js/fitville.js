@@ -1050,8 +1050,6 @@
             '</strong> at level ' +
             nextTitleLevel +
             '</p>') +
-        '<p class="muted">Check-in bonus: +' + skillBonus(l) +
-        ' XP for ratings 1–5. A 0/5 rating earns 0 XP.</p>' +
         (CONFIG.bonusMilestones.some((milestone) => milestone.level > l)
           ? '<p class="muted">Next bonus at skill level ' +
             CONFIG.bonusMilestones.find((milestone) => milestone.level > l).level + '.</p>'
