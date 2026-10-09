@@ -982,6 +982,15 @@ header .stats #overall-level:focus-visible {
   color: #185c3b;
 }
 
+/* Compact wordmark shares the header row with level and settings controls. */
+header .app-logo {
+  display: block;
+  width: clamp(90px, 28vw, 170px);
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
 /* Responsive layout and reduced-motion preferences. */
 
 @media (max-width:600px) {
