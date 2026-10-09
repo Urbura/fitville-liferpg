@@ -610,7 +610,7 @@
     function renderHUD() {
       const totalLevel = currentTotalLevel(),
         reward = totalReward(totalLevel);
-      document.getElementById('overall-level').textContent = 'Total Level ' + totalLevel;
+      document.getElementById('overall-level-value').textContent = 'Total Level ' + totalLevel;
       document.getElementById('overall-title').textContent = reward.title;
       if (document.getElementById('total-dialog').open)
         document.getElementById('total-content').innerHTML = totalRewardsPanel();
