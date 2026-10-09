@@ -382,3 +382,17 @@ test('Total Level roadmap follows configured rewards and unlock boundaries', () 
     else assert.match(panel, /Next reward/);
   }
 });
+
+test('daily ratings and correction controls precede detailed XP information', () => {
+  const t = tracker();
+  t.openSkillCheck(0);
+  let html = t.dialogHTML();
+  assert.ok(html.indexOf('data-quick-score') < html.indexOf('popup-progress'));
+  t.recordCheckIn(0, 2);
+  t.openSkillCheck(0);
+  html = t.dialogHTML();
+  assert.ok(html.indexOf('Edit today’s rating') < html.indexOf('popup-progress'));
+  t.openSkillCheck(0, true);
+  html = t.dialogHTML();
+  assert.ok(html.indexOf('data-edit-score') < html.indexOf('popup-progress'));
+});
