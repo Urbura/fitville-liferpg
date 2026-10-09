@@ -778,7 +778,7 @@ header .stats {
   white-space: nowrap;
 }
 
-header .stats>span {
+header .stats>:is(span,button) {
   border: 1px solid #d9f4ff90;
   border-radius: 999px;
   background: #07568b55;
@@ -891,6 +891,97 @@ header>div:has(#dev-open:not([hidden])) nav {
   grid-column: 4;
 }
 
+/* Total Level opens a scrollable reward roadmap on small screens. */
+header .stats #overall-level {
+  min-height: 44px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+header .stats #overall-level:focus-visible {
+  outline-color: #fff3a5;
+}
+
+#total-dialog {
+  max-width: 460px;
+  max-height: 85dvh;
+  overflow: auto;
+  text-align: left;
+  padding: 20px;
+  border-color: #80cfff;
+}
+
+#total-dialog .popup-close {
+  min-width: 44px;
+  flex-shrink: 0;
+  background: #d4edff;
+  color: #075fa5;
+}
+
+#total-dialog h2 {
+  margin: 0;
+}
+
+.total-current {
+  margin-bottom: 4px;
+  color: #086bad;
+}
+
+.total-progress, .total-milestone progress {
+  accent-color: #087cd9;
+}
+
+.total-rewards {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.total-milestone {
+  padding: 14px;
+  border: 1px solid #c9e5ff;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.total-milestone.is-unlocked {
+  border-color: #a8d7ba;
+  background: #effaf3;
+}
+
+.total-milestone.is-next {
+  border: 2px solid #087cd9;
+}
+
+.total-milestone .row {
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.total-milestone h3 {
+  margin-top: 8px;
+}
+
+.total-milestone p {
+  margin: 4px 0 0;
+}
+
+.milestone-status {
+  color: #23516a;
+  font-weight: 700;
+}
+
+.is-unlocked .milestone-status {
+  color: #185c3b;
+}
+
 /* Responsive layout and reduced-motion preferences. */
 
 @media (max-width:600px) {
@@ -902,7 +993,7 @@ header>div:has(#dev-open:not([hidden])) nav {
     gap: 5px;
   }
 
-  header .stats>span {
+  header .stats>:is(span,button) {
     font-size: clamp(9px,2.4vw,11px);
     padding: 2px 4px;
   }
@@ -960,7 +1051,7 @@ header>div:has(#dev-open:not([hidden])) nav {
     gap: 3px;
   }
 
-  header .stats>span {
+  header .stats>:is(span,button) {
     font-size: 9px;
     padding: 2px 3px;
   }
