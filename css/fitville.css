@@ -824,9 +824,9 @@ nav button {
   flex: none;
   max-width: none;
   font-size: 0;
-  width: 35px;
-  height: 35px;
-  min-height: 35px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
   border-radius: 50%;
   padding: 0;
   display: grid;
@@ -1012,9 +1012,9 @@ header .app-logo {
   }
 
   header nav button {
-    width: 32px;
-    height: 32px;
-    min-height: 32px;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 }
 
@@ -1070,9 +1070,9 @@ header .app-logo {
   }
 
   header nav button {
-    width: 28px;
-    height: 28px;
-    min-height: 28px;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 }
 
