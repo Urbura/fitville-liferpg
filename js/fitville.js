@@ -618,33 +618,42 @@
       document.body.style.setProperty('--tracker-background', CONFIG.themes[reward.theme]);
     }
 
-    function totalRewardsPanel() {
+    let totalRewardIndex = null;
+    function selectedRewardIndex() {
+      if (totalRewardIndex !== null) return totalRewardIndex;
+      const next = nextRewardForTotalLevel(currentTotalLevel());
+      return next ? TOTAL_REWARDS.indexOf(next) : TOTAL_REWARDS.length - 1;
+    }
+    function totalRewardsPanel(index = selectedRewardIndex()) {
       const current = currentTotalLevel(), next = nextRewardForTotalLevel(current);
+      index = Math.max(0, Math.min(TOTAL_REWARDS.length - 1, index));
+      const milestone = TOTAL_REWARDS[index], unlocked = current >= milestone.level;
+      const needed = Math.max(1, milestone.level - MIN_TOTAL_LEVEL);
+      const progress = unlocked ? needed : Math.max(0, current - MIN_TOTAL_LEVEL);
       return '<p class="total-current"><strong>Total Level ' + current + '</strong> / ' +
-        MAX_TOTAL_LEVEL + '</p><p class="muted">The sum of your five skill levels.' +
-        (DEV && devTotalLevel !== null ? ' Developer preview.' : '') +
-        '</p><progress class="total-progress" max="' + (MAX_TOTAL_LEVEL - MIN_TOTAL_LEVEL) +
-        '" value="' + (current - MIN_TOTAL_LEVEL) +
-        '" aria-label="Progress from starting Total Level to maximum"></progress><p class="next-reward">' +
-        safeText(next ? (next.level - current) + ' more Total Levels to unlock ' + next.title + '.' :
-          'All Total Level rewards unlocked!') + '</p><ol class="total-rewards">' +
-        TOTAL_REWARDS.map((milestone) => {
-          const unlocked = current >= milestone.level;
-          const needed = Math.max(1, milestone.level - MIN_TOTAL_LEVEL);
-          const progress = unlocked ? needed : Math.max(0, current - MIN_TOTAL_LEVEL);
-          return '<li class="total-milestone' + (unlocked ? ' is-unlocked' : '') +
-            (next && next.level === milestone.level ? ' is-next' : '') +
-            '"><div class="row"><strong>Level ' + milestone.level + '</strong><span class="milestone-status">' +
-            (unlocked ? '✓ Unlocked' : next && next.level === milestone.level ? 'Next reward' : 'Locked') +
-            '</span></div><h3>' + safeText(milestone.title) +
-            '</h3><p class="muted">' + safeText(milestone.themeName) +
-            ' background</p><progress max="' + needed + '" value="' + progress +
-            '" aria-label="' + safeText(milestone.title) + ' unlock progress"></progress>' +
-            (unlocked ? '' : '<small>' + (milestone.level - current) + ' Total Levels remaining</small>') +
-            '</li>';
-        }).join('') + '</ol>';
+        MAX_TOTAL_LEVEL + '</p><progress class="total-progress" max="' +
+        (MAX_TOTAL_LEVEL - MIN_TOTAL_LEVEL) + '" value="' + (current - MIN_TOTAL_LEVEL) +
+        '" aria-label="Progress from starting Total Level to maximum"></progress>' +
+        (DEV && devTotalLevel !== null ? '<p class="muted">Developer preview.</p>' : '') +
+        '<section class="total-milestone' + (unlocked ? ' is-unlocked' : '') +
+        (next && next.level === milestone.level ? ' is-next' : '') +
+        '" aria-live="polite"><div class="row"><strong>Level ' + milestone.level +
+        '</strong><span class="milestone-status">' +
+        (unlocked ? '✓ Unlocked' : next && next.level === milestone.level ? 'Next reward' : 'Locked') +
+        '</span></div><h3>' + safeText(milestone.title) + '</h3><p class="muted">' +
+        safeText(milestone.themeName) + ' background</p><progress max="' + needed +
+        '" value="' + progress + '" aria-label="' + safeText(milestone.title) +
+        ' unlock progress"></progress><small>' +
+        (unlocked ? 'Reward unlocked' : (milestone.level - current) + ' Total Levels remaining') +
+        '</small></section><div class="reward-navigation">' +
+        '<button id="reward-previous"' + (index === 0 ? ' disabled' : '') + '>Previous</button>' +
+        '<span>' + (index + 1) + ' / ' + TOTAL_REWARDS.length + '</span>' +
+        '<button id="reward-next"' + (index === TOTAL_REWARDS.length - 1 ? ' disabled' : '') +
+        '>Next</button></div>' +
+        (!next ? '<p class="muted">All Total Level rewards unlocked!</p>' : '');
     }
     function openTotalRewards() {
+      totalRewardIndex = null;
       document.getElementById('total-content').innerHTML = totalRewardsPanel();
       document.getElementById('total-dialog').showModal();
     }
@@ -792,6 +801,23 @@
       refreshDayIfNeeded();
       if (b.id === 'overall-level') {
         openTotalRewards();
+        return;
+      }
+      if (b.id === 'reward-previous' || b.id === 'reward-next') {
+        totalRewardIndex = Math.max(0, Math.min(TOTAL_REWARDS.length - 1,
+          selectedRewardIndex() + (b.id === 'reward-next' ? 1 : -1)));
+        document.getElementById('total-content').innerHTML = totalRewardsPanel();
+        const control = document.getElementById(b.id);
+        (control.disabled ? document.getElementById(
+          b.id === 'reward-next' ? 'reward-previous' : 'reward-next') : control).focus();
+        return;
+      }
+      if (b.dataset.skillProgress !== undefined) {
+        openSkillCheck(Number(b.dataset.skillProgress), b.dataset.editing === 'true', true);
+        return;
+      }
+      if (b.dataset.skillRating !== undefined) {
+        openSkillCheck(Number(b.dataset.skillRating), b.dataset.editing === 'true');
         return;
       }
       if (b.id === 'total-close') {
@@ -1012,7 +1038,7 @@
       'Mostly met',
       'Goal met',
     ];
-    function openSkillCheck(i, editing = false) {
+    function openSkillCheck(i, editing = false, viewingProgress = false) {
       if (!Number.isInteger(i) || i < 0 || i >= SKILLS.length) return;
       const s = SKILLS[i],
         x = state.skills[i],
@@ -1057,6 +1083,16 @@
             CONFIG.bonusMilestones.find((milestone) => milestone.level > l).level + '</p>'
           : '') +
         '</section>';
+      if (viewingProgress) {
+        document.getElementById('check-content').innerHTML =
+          '<div class="row"><h2 id="check-heading">' + skillIcon(i) + ' ' + s.name +
+          '</h2><button id="check-close" class="popup-close" aria-label="Close check-in">×</button></div>' +
+          xpPanel + '<button class="wide" data-skill-rating="' + i +
+          '" data-editing="' + editing + '">Back to ' + (done && !editing ? 'check-in' : 'ratings') + '</button>';
+        if (!document.getElementById('check-dialog').open)
+          document.getElementById('check-dialog').showModal();
+        return;
+      }
       document.getElementById('check-content').innerHTML =
         '<div class="row"><h2 id="check-heading">' +
         skillIcon(i) +
@@ -1100,7 +1136,8 @@
             '</div><p class="muted rating-save-note">' +
             (editing ? 'Tap to save your correction.' :
               'Tap to save. You can edit today’s rating.') + '</p><details class="rating-help"><summary>How ratings work</summary><p class="rating-intro">Rate progress toward your own goal. Planned rest or recovery can count as meeting your goal. One check-in per skill each day; corrections replace its rating and adjust XP.</p></details>') +
-        xpPanel;
+        '<button class="wide view-progress" data-skill-progress="' + i +
+        '" data-editing="' + editing + '">View progress</button>';
       if (!document.getElementById('check-dialog').open)
         document.getElementById('check-dialog').showModal();
     }

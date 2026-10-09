@@ -369,30 +369,41 @@ test('completed skill dialog offers editing with the current rating selected', (
   assert.doesNotMatch(t.dialogHTML(), /data-quick-score/);
 });
 
-test('Total Level roadmap follows configured rewards and unlock boundaries', () => {
+test('reward pages show one configured milestone with correct unlock status', () => {
   const t = tracker();
   for (const current of [5, 9, 10, 24, 25, 249, 250]) {
     t.preview(current);
-    const panel = t.totalRewardsPanel();
-    assert.equal((panel.match(/class="total-milestone/g) || []).length, config.totalRewards.length);
-    assert.equal((panel.match(/✓ Unlocked/g) || []).length,
-      config.totalRewards.filter(reward => reward.level <= current).length);
-    for (const reward of config.totalRewards) assert.ok(panel.includes(reward.title));
-    if (current === 250) assert.match(panel, /All Total Level rewards unlocked!/);
-    else assert.match(panel, /Next reward/);
+    for (let index = 0; index < config.totalRewards.length; index++) {
+      const panel = t.totalRewardsPanel(index);
+      const reward = config.totalRewards[index];
+      assert.equal((panel.match(/class="total-milestone/g) || []).length, 1);
+      assert.ok(panel.includes(reward.title));
+      assert.equal(panel.includes('✓ Unlocked'), current >= reward.level);
+      assert.equal(panel.includes('id="reward-previous" disabled'), index === 0);
+      assert.equal(panel.includes('id="reward-next" disabled'), index === config.totalRewards.length - 1);
+    }
+    const next = config.totalRewards.find(reward => reward.level > current);
+    assert.ok(t.totalRewardsPanel().includes(next ? next.title : 'Habit Champion'));
+    if (!next) assert.match(t.totalRewardsPanel(), /All Total Level rewards unlocked!/);
   }
 });
 
-test('daily ratings and correction controls precede detailed XP information', () => {
+test('ratings and progress use separate views and retain correction state', () => {
   const t = tracker();
-  t.openSkillCheck(0);
-  let html = t.dialogHTML();
-  assert.ok(html.indexOf('data-quick-score') < html.indexOf('popup-progress'));
-  t.recordCheckIn(0, 2);
-  t.openSkillCheck(0);
-  html = t.dialogHTML();
-  assert.ok(html.indexOf('Edit today’s rating') < html.indexOf('popup-progress'));
-  t.openSkillCheck(0, true);
-  html = t.dialogHTML();
-  assert.ok(html.indexOf('data-edit-score') < html.indexOf('popup-progress'));
+  for (const editing of [false, true]) {
+    if (editing) t.recordCheckIn(0, 2);
+    t.openSkillCheck(0, editing);
+    let html = t.dialogHTML();
+    assert.match(html, /View progress/);
+    assert.doesNotMatch(html, /popup-progress/);
+    assert.ok(html.includes(editing ? 'data-edit-score' : 'data-quick-score'));
+    t.openSkillCheck(0, editing, true);
+    html = t.dialogHTML();
+    assert.match(html, /popup-progress/);
+    assert.match(html, /data-skill-rating="0"/);
+    assert.ok(html.includes('data-editing="' + editing + '"'));
+    assert.doesNotMatch(html, /data-quick-score|data-edit-score/);
+    t.openSkillCheck(0, editing);
+    assert.ok(t.dialogHTML().includes(editing ? 'data-edit-score' : 'data-quick-score'));
+  }
 });
