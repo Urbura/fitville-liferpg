@@ -27,7 +27,7 @@ function tracker(now = '2026-10-08T16:00:00Z') {
   };
   const nodes = new Map();
   const node = (id) => {
-    if (!nodes.has(id)) nodes.set(id, { open: true, addEventListener() {} });
+    if (!nodes.has(id)) nodes.set(id, { open: true, addEventListener() {}, showModal() { this.open = true; }, close() { this.open = false; } });
     return nodes.get(id);
   };
   const clock = Date.parse(now);
@@ -43,9 +43,10 @@ function tracker(now = '2026-10-08T16:00:00Z') {
   });
   const instrumented = source.replace(startup, `
     globalThis.tracker = {
-      XP, MAX_LEVEL, MAX_TOTAL_LEVEL, fresh, level, readSave, recordCheckIn, skillBonus, checkInXP,
+      XP, MAX_LEVEL, MAX_TOTAL_LEVEL, fresh, level, readSave, recordCheckIn, editCheckIn, skillBonus, checkInXP,
       totalSkillLevel, totalReward, TOTAL_REWARDS, weeklyCheckInCount,
-      day, nextReset, nextRewardText, queueLevels, dashboard,
+      day, nextReset, nextRewardText, queueLevels, dashboard, openSkillCheck,
+      dialogHTML: () => document.getElementById('check-content').innerHTML,
       state: () => state,
       setState: (value) => { state = value; },
       preview: (value) => { DEV = value !== null; devTotalLevel = value; },
@@ -296,4 +297,74 @@ test('progression uses the supplied configuration rather than fixed constants', 
   assert.equal(progression.maxTotalLevel, 15);
   assert.equal(progression.levelForXP(100), 3);
   assert.equal(progression.experienceForCheckIn(5, 2), 6);
+});
+
+test('corrections replace XP and remain one daily check-in', () => {
+  const t = tracker();
+  t.recordCheckIn(0, 2);
+  assert.equal(t.editCheckIn(0, 4, t.day()).delta, 2);
+  assert.equal(t.state().skills[0].xp, 4);
+  for (const score of [0, 5, 1, 4, 4]) t.editCheckIn(0, score, t.day());
+  assert.equal(t.state().skills[0].xp, 4);
+  assert.equal(t.weeklyCheckInCount(), 1);
+  assert.equal(t.recordCheckIn(0, 5).status, 'duplicate');
+  assert.equal(t.editCheckIn(0, 6, t.day()).status, 'invalid');
+  assert.equal(t.editCheckIn(1, 4, t.day()).status, 'missing');
+});
+
+test('corrections retain pre-check-in bonus across milestones, zero and reload', () => {
+  const t = tracker();
+  t.state().skills[0].xp = 80;
+  t.recordCheckIn(0, 1);
+  t.editCheckIn(0, 5, t.day());
+  assert.equal(t.state().skills[0].xp, 85);
+  t.state().skills[1].xp = 81;
+  t.recordCheckIn(1, 0);
+  t.editCheckIn(1, 5, t.day());
+  assert.equal(t.state().skills[1].xp, 87);
+  t.editCheckIn(1, 0, t.day());
+  t.setState(t.readSave(JSON.stringify(t.state())));
+  t.editCheckIn(1, 5, t.day());
+  assert.equal(t.state().skills[1].xp, 87);
+  assert.equal(t.queued().length, 0);
+});
+
+test('expired corrections cannot affect the new day', () => {
+  const before = tracker('2026-10-08T09:29:59Z');
+  before.recordCheckIn(0, 2);
+  const after = tracker('2026-10-08T09:30:00Z');
+  after.setState(after.readSave(JSON.stringify(before.state())));
+  assert.equal(after.editCheckIn(0, 5, before.day()).status, 'expired');
+  assert.equal(after.state().skills[0].xp, 2);
+});
+
+test('older check-ins retain their recorded bonus or historical XP rate', () => {
+  const t = tracker();
+  t.state().skills[0].xp = 81;
+  t.recordCheckIn(0, 3);
+  delete t.state().days[t.day()].bonusBases;
+  t.editCheckIn(0, 5, t.day());
+  assert.equal(t.state().skills[0].xp, 87);
+  t.state().days[t.day()] = { scores: [2,null,null,null,null], rates: [3,null,null,null,null] };
+  t.state().skills[0].xp = 6;
+  t.editCheckIn(0, 4, t.day());
+  assert.equal(t.state().skills[0].xp, 12);
+});
+
+test('malformed original bonus metadata is rejected', () => {
+  const t = tracker();
+  t.recordCheckIn(0, 2);
+  t.state().days[t.day()].bonusBases[0] = 99;
+  assert.throws(() => t.readSave(JSON.stringify(t.state())));
+});
+
+test('completed skill dialog offers editing with the current rating selected', () => {
+  const t = tracker();
+  t.recordCheckIn(0, 2);
+  t.openSkillCheck(0);
+  assert.match(t.dialogHTML(), /Edit today’s rating/);
+  t.openSkillCheck(0, true);
+  assert.match(t.dialogHTML(), /data-edit-score="2" data-skill="0" data-day="2026-10-08" aria-pressed="true"/);
+  assert.match(t.dialogHTML(), /This still counts as one check-in/);
+  assert.doesNotMatch(t.dialogHTML(), /data-quick-score/);
 });
