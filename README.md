@@ -25,6 +25,7 @@ Use http://localhost:8000/?dev for developer mode. It previews skill and Total L
 | `index.html` | Page structure, dialog containers, developer controls, and script order |
 | `js/config.js` | Editable skills, titles, colours, progression settings, rewards, backgrounds, and reset settings |
 | `js/progression.js` | Pure XP, level, bonus, Total Level, and reward-selection calculations |
+| `js/storage.js` | Reads and validates saved progress, including compatibility with older check-in history |
 | `js/fitville.js` | Check-in coordination, save handling, UI rendering, celebrations, and browser events |
 | `css/fitville.css` | Layout and styling; responsive overrides are grouped at the end |
 | `assets/icons/` | Local SVG icons and their licensing information |
@@ -33,9 +34,11 @@ Use http://localhost:8000/?dev for developer mode. It previews skill and Total L
 
 The older `fitville` filenames remain valid and are intentional. Visible app branding is FitQuest.
 
+To understand saves: start with `js/storage.js` for **reading and checking** saved data. The browser storage key (`fitville-v1`) and the save/write synchronization logic still live in `js/fitville.js`. Do not rename the key or reorder the skills array: either change could disconnect existing progress.
+
 ## Where to edit
 
-Start with **js/config.js** for names, titles, rewards, colours, or balancing. Scripts load in this order: `config.js`, `progression.js`, then `fitville.js`.
+Start with **js/config.js** for names, titles, rewards, colours, or balancing. Scripts load in this order: `config.js`, `progression.js`, `storage.js`, then `fitville.js`.
 
 ### Change a reward title
 
