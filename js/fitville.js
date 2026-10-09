@@ -228,6 +228,11 @@
               bonus === null || (entry.scores[i] !== null && Number.isInteger(bonus) &&
                 bonus >= 0 && bonus <= 4 && (entry.scores[i] !== 0 || bonus === 0)))))
           throw Error('Invalid check-in bonuses');
+        if (entry.bonusBases !== undefined &&
+          (!Array.isArray(entry.bonusBases) || entry.bonusBases.length !== SKILLS.length ||
+            !entry.bonusBases.every((bonus, i) => bonus === null ||
+              (entry.scores[i] !== null && Number.isInteger(bonus) && bonus >= 0 && bonus <= 4))))
+          throw Error('Invalid original check-in bonuses');
         if (entry.rates === undefined) entry.rates = Array(SKILLS.length).fill(null);
         if (!Array.isArray(entry.rates)) throw Error('Invalid check-in rates');
         entry.rates = entry.scores.map((score, i) => {
@@ -667,11 +672,57 @@
       entry.scores[i] = score;
       entry.rates[i] = 1;
       entry.bonuses[i] = earned - score;
+      if (!entry.bonusBases) entry.bonusBases = Array(SKILLS.length).fill(null);
+      entry.bonusBases[i] = skillBonus(before);
       state.days[key] = entry;
       state.skills[i].xp += earned;
       const after = level(state.skills[i].xp);
       const totalAfter = totalSkillLevel();
       return { status: 'recorded', earned, before, after, totalBefore, totalAfter, state };
+    }
+    // Corrections replace today's XP contribution, retaining its original bonus and rate.
+    function correctionTerms(entry, i) {
+      const score = entry.scores[i];
+      const modern = Number.isInteger(entry.bonuses?.[i]);
+      const rate = modern ? 1 : (entry.rates[i] ?? 1);
+      const bonus = modern ? entry.bonuses[i] : 0;
+      const originalXP = score * rate + bonus;
+      const base = entry.bonusBases?.[i] ??
+        (modern ? (score > 0 ? bonus : skillBonus(level(state.skills[i].xp))) : 0);
+      return { rate, base, originalXP };
+    }
+    function editCheckIn(i, score, expectedDay) {
+      if (!Number.isInteger(i) || i < 0 || i >= SKILLS.length ||
+          !Number.isInteger(score) || score < 0 || score > 5)
+        return { status: 'invalid' };
+      if (expectedDay !== day()) return { status: 'expired' };
+      const entry = dailyEntry();
+      if (!entry || !Number.isInteger(entry.scores[i])) return { status: 'missing' };
+      const { rate, base, originalXP } = correctionTerms(entry, i);
+      const earned = score === 0 ? 0 : score * rate + base;
+      const delta = earned - originalXP;
+      if (state.skills[i].xp + delta < 0) return { status: 'invalid' };
+      if (!entry.bonusBases) entry.bonusBases = Array(SKILLS.length).fill(null);
+      entry.bonusBases[i] = base;
+      entry.scores[i] = score;
+      if (Number.isInteger(entry.bonuses?.[i])) entry.bonuses[i] = score > 0 ? base : 0;
+      state.skills[i].xp += delta;
+      return { status: 'updated', delta, state };
+    }
+    function submitCorrection(i, score, expectedDay) {
+      const result = editCheckIn(i, score, expectedDay);
+      document.getElementById('check-dialog').close();
+      if (result.status !== 'updated') {
+        notify('This rating could not be changed. Open the skill again to check its current status.');
+        return;
+      }
+      const persisted = save();
+      render(false);
+      if (state !== result.state) return;
+      // Edits refresh levels and rewards without replaying check-in celebrations.
+      notify(SKILLS[i].name + ' · corrected to ' + score + '/5 · ' +
+        (result.delta > 0 ? '+' : '') + result.delta + ' XP' +
+        (DEV ? ' · preview only.' : persisted ? ' · saved.' : ' · temporary; export a backup.'));
     }
     function submitCheckIn(i, score) {
       const result = recordCheckIn(i, score);
@@ -845,6 +896,14 @@
         document.getElementById('check-dialog').close();
         return;
       }
+      if (b.dataset.editSkill !== undefined) {
+        openSkillCheck(Number(b.dataset.editSkill), true);
+        return;
+      }
+      if (b.dataset.editScore !== undefined) {
+        submitCorrection(Number(b.dataset.skill), Number(b.dataset.editScore), b.dataset.day);
+        return;
+      }
       if (b.dataset.quickScore !== undefined) {
         submitCheckIn(Number(b.dataset.skill), Number(b.dataset.quickScore));
         return;
@@ -912,7 +971,7 @@
       'Mostly met',
       'Goal met',
     ];
-    function openSkillCheck(i) {
+    function openSkillCheck(i, editing = false) {
       if (!Number.isInteger(i) || i < 0 || i >= SKILLS.length) return;
       const s = SKILLS[i],
         x = state.skills[i],
@@ -967,26 +1026,29 @@
         s.name +
         '</h2><button id="check-close" class="popup-close" aria-label="Close check-in">×</button></div>' +
         xpPanel +
-        (done
+        (done && !editing
           ? '<div class="saved-score">✓ Checked in today · ' +
             entry.scores[i] +
             '/5 — ' +
             RATING_GUIDANCE[entry.scores[i]] +
-            '</div><p class="muted">' +
+            '</div><button class="wide" data-edit-skill="' + i +
+            '">Edit today’s rating</button><p class="muted">' +
             resetText() +
             '</p>'
           : '<p>' +
-            s.hint +
+            (editing ? 'Choose the correct rating. This replaces today’s rating and adjusts its XP.' : s.hint) +
             '</p><p class="rating-intro">Rate progress toward your own goal. Planned rest or recovery can count as meeting your goal.</p><div class="scores guided-scores" role="group" aria-label="' +
             s.name +
             ' score">' +
             RATING_GUIDANCE.map(
               (label, v) =>
-                '<button data-quick-score="' +
+                '<button ' + (editing ? 'data-edit-score="' : 'data-quick-score="') +
                 v +
                 '" data-skill="' +
                 i +
-                '" aria-label="' +
+                '" data-day="' + day() + '"' +
+                (editing ? ' aria-pressed="' + (entry.scores[i] === v) + '"' : '') +
+                ' aria-label="' +
                 v +
                 ' out of 5: ' +
                 label +
@@ -994,10 +1056,15 @@
                 v +
                 '</strong><span>' +
                 label +
-                '</span><span>+' + checkInXP(v, l) + ' XP</span></button>',
+                '</span><span>' + (editing
+                  ? ((v === 0 ? 0 : v * correctionTerms(entry, i).rate + correctionTerms(entry, i).base) + ' XP total')
+                  : ('+' + checkInXP(v, l) + ' XP')) + '</span></button>',
             ).join('') +
-            '</div><p class="muted rating-save-note">Tap a score to save immediately. One check-in per skill each day.</p>');
-      document.getElementById('check-dialog').showModal();
+            '</div><p class="muted rating-save-note">' +
+            (editing ? 'Tap a score to save your correction. This still counts as one check-in.' :
+              'Tap a score to save immediately. One check-in per skill each day.') + '</p>');
+      if (!document.getElementById('check-dialog').open)
+        document.getElementById('check-dialog').showModal();
     }
 
     // Startup and browser lifecycle
