@@ -365,7 +365,7 @@ test('completed skill dialog offers editing with the current rating selected', (
   assert.match(t.dialogHTML(), /Edit today’s rating/);
   t.openSkillCheck(0, true);
   assert.match(t.dialogHTML(), /data-edit-score="2" data-skill="0" data-day="2026-10-08" aria-pressed="true"/);
-  assert.match(t.dialogHTML(), /This still counts as one check-in/);
+  assert.match(t.dialogHTML(), /Tap to save your correction/);
   assert.doesNotMatch(t.dialogHTML(), /data-quick-score/);
 });
 
