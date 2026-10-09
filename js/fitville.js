@@ -384,13 +384,31 @@
         ? 'Your first check-in this week starts here.'
         : 'You checked in ' + count + ' ' + (count === 1 ? 'day' : 'days') + ' this week!';
     }
+    // Small local SVG badges stay crisp at header size without extra image downloads.
+    const BADGE_PATHS = {
+      shoe: 'M5 10H12L15 17L26 21C28 22 29 24 28 26H4V20L5 10ZM4 23H28M15 17L12 20M19 19L16 22',
+      bottle: 'M12 5H20V9L23 13V26H9V13L12 9ZM12 9H20M9 16H23M13 20H19',
+      apple: 'M16 12C7 5 3 13 6 22C8 28 13 29 16 26C19 29 24 28 26 22C29 13 25 5 16 12M16 11V7M16 8C18 3 23 4 24 5C23 9 19 10 16 8',
+      stretch: 'M16 5C20 5 20 11 16 11C12 11 12 5 16 5ZM16 12V20M16 14L6 8M16 14L26 8M16 20L8 28M16 20L24 28',
+      rope: 'M7 9V16H11V9ZM21 9V16H25V9ZM9 9C9 1 23 1 23 9M9 16V20C9 29 23 29 23 20V16',
+      dumbbell: 'M4 11H8V21H4ZM8 8H12V24H8ZM12 14H20V18H12ZM20 8H24V24H20ZM24 11H28V21H24Z',
+      heart: 'M16 26L5 16C-1 9 8 2 16 10C24 2 33 9 27 16ZM5 16H11L14 12L18 20L21 16H27',
+      kettlebell: 'M10 12V9C10 1 22 1 22 9V12M13 11V9C13 5 19 5 19 9V11M16 11C3 11 1 28 16 28C31 28 29 11 16 11Z',
+      trophy: 'M10 5H22V13C22 22 10 22 10 13ZM10 8H5V12C5 17 10 17 11 17M22 8H27V12C27 17 22 17 21 17M16 20V26M10 28H22M13 10H15V15H13ZM17 10H19V15H17ZM15 12H17',
+    };
+    function rewardBadge(milestone, large = false) {
+      const path = BADGE_PATHS[milestone.badge] || BADGE_PATHS.dumbbell;
+      return '<svg class="reward-badge' + (large ? ' reward-badge-large' : '') +
+        '" viewBox="0 0 40 40" aria-hidden="true" focusable="false">' +
+        '<circle cx="20" cy="20" r="18" fill="#fff2b8" stroke="#be8a28" stroke-width="2"/>' +
+        '<path d="' + path + '" transform="translate(4 4)" fill="none" stroke="#235f90" ' +
+        'stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
     function nextRewardText() {
       const current = currentTotalLevel(),
         next = nextRewardForTotalLevel(current);
       if (!next) return 'All Total Level rewards unlocked!';
-      const themeChanges = next.theme !== totalReward(current).theme;
-      return 'Next reward at Total Level ' + next.level + ': ' + next.title +
-        (themeChanges ? ' + ' + next.themeName + ' background' : '');
+      return 'Next title at Total Level ' + next.level + ': ' + next.title;
     }
     function dashboard() {
       const entry = dailyEntry(),
@@ -520,11 +538,9 @@
           '<h2 id="level-heading"><span class="congratulations">Congratulations!</span>' +
           'You reached Total Level ' + l + '!</h2>' +
           (milestone
-            ? '<h3>New title: ' + safeText(milestone.title) + '</h3>' +
-              '<p>Your title has updated beside your Total Level.</p>' +
-              (milestone.theme === totalReward(l - 1).theme
-                ? ''
-                : '<p>Your background is now the ' + safeText(milestone.themeName) + ' theme.</p>')
+            ? rewardBadge(milestone, true) +
+              '<h3>' + safeText(milestone.title) + ' unlocked</h3>' +
+              '<p>Your new title and badge are displayed in your Total Level button.</p>'
             : '<h3>Your first total level-up!</h3>' +
               '<p>You’re building a healthy habit. Small, consistent steps add up—keep checking in toward your own goals.</p>' +
               '<p class="muted">Your Total Level adds up all five skill levels. Each skill level-up increases your Total Level.</p>');
@@ -611,7 +627,7 @@
       const totalLevel = currentTotalLevel(),
         reward = totalReward(totalLevel);
       document.getElementById('overall-level-value').textContent = 'Total Level ' + totalLevel;
-      document.getElementById('overall-title').textContent = reward.title;
+      document.getElementById('overall-title').innerHTML = rewardBadge(reward) + '<span>' + safeText(reward.title) + '</span>';
       if (document.getElementById('total-dialog').open)
         document.getElementById('total-content').innerHTML = totalRewardsPanel();
       document.body.dataset.theme = reward.theme;
@@ -640,8 +656,8 @@
         '" aria-live="polite"><div class="row"><strong>Level ' + milestone.level +
         '</strong><span class="milestone-status">' +
         (unlocked ? '✓ Unlocked' : next && next.level === milestone.level ? 'Next reward' : 'Locked') +
-        '</span></div><h3>' + safeText(milestone.title) + '</h3><p class="muted">' +
-        safeText(milestone.themeName) + ' background</p><progress max="' + needed +
+        '</span></div><div class="reward-title">' + rewardBadge(milestone, true) +
+        '<h3>' + safeText(milestone.title) + '</h3></div><progress max="' + needed +
         '" value="' + progress + '" aria-label="' + safeText(milestone.title) +
         ' unlock progress"></progress><small>' +
         (unlocked ? 'Reward unlocked' : (milestone.level - current) + ' Total Levels remaining') +

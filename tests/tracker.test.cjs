@@ -45,7 +45,7 @@ function tracker(now = '2026-10-08T16:00:00Z') {
     globalThis.tracker = {
       XP, MAX_LEVEL, MAX_TOTAL_LEVEL, fresh, level, readSave, recordCheckIn, editCheckIn, skillBonus, checkInXP,
       totalSkillLevel, totalReward, TOTAL_REWARDS, weeklyCheckInCount,
-      day, nextReset, nextRewardText, queueLevels, dashboard, openSkillCheck, totalRewardsPanel,
+      day, nextReset, nextRewardText, queueLevels, dashboard, openSkillCheck, totalRewardsPanel, rewardBadge,
       dialogHTML: () => document.getElementById('check-content').innerHTML,
       state: () => state,
       setState: (value) => { state = value; },
@@ -140,7 +140,7 @@ test('reward milestones have distinct titles and themes and unlock at the correc
     if (reward.level > 5) assert.notEqual(t.totalReward(reward.level - 1).title, reward.title);
   }
   t.preview(50);
-  assert.match(t.nextRewardText(), /75: Habit Wayfinder.*Lagoon/);
+  assert.match(t.nextRewardText(), /^Next title at Total Level 75: Habit Wayfinder$/);
   t.preview(250);
   assert.equal(t.nextRewardText(), 'All Total Level rewards unlocked!');
 });
@@ -406,4 +406,16 @@ test('ratings and progress use separate views and retain correction state', () =
     t.openSkillCheck(0, editing);
     assert.ok(t.dialogHTML().includes(editing ? 'data-edit-score' : 'data-quick-score'));
   }
+});
+
+test('title rewards have distinct badges and do not promote backgrounds', () => {
+  const t = tracker();
+  const badges = t.TOTAL_REWARDS.map(reward => t.rewardBadge(reward));
+  assert.equal(new Set(badges).size, t.TOTAL_REWARDS.length);
+  for (let i = 0; i < t.TOTAL_REWARDS.length; i++) {
+    const panel = t.totalRewardsPanel(i);
+    assert.match(panel, /reward-badge-large/);
+    assert.doesNotMatch(panel, /background/);
+  }
+  assert.doesNotMatch(t.nextRewardText(), /background/);
 });
