@@ -214,10 +214,10 @@
         Number.isFinite(s.bank)
       );
     }
-    function readSave(raw) {
-      const s = JSON.parse(raw);
-      if (!validSharedSave(s) || s.bank < 0) throw Error('Invalid save');
-      for (const entry of Object.values(s.days)) {
+    // Normalize older check-in entries while rejecting malformed imported history.
+    // Keep this shared between normal startup and backup imports.
+    function validateCheckInHistory(save) {
+      for (const entry of Object.values(save.days)) {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry))
           throw Error('Invalid check-in history');
         if (entry.scores === undefined) entry.scores = Array(SKILLS.length).fill(null);
@@ -243,11 +243,16 @@
         entry.rates = entry.scores.map((score, i) => {
           if (score === null) return null;
           const rate = entry.rates[i];
-          if (rate === null || rate === undefined) return LEGACY_RATES[s.skills[i].tier];
+          if (rate === null || rate === undefined) return LEGACY_RATES[save.skills[i].tier];
           if (!Number.isFinite(rate) || rate < 0) throw Error('Invalid check-in rate');
           return rate;
         });
       }
+    }
+    function readSave(raw) {
+      const s = JSON.parse(raw);
+      if (!validSharedSave(s) || s.bank < 0) throw Error('Invalid save');
+      validateCheckInHistory(s);
       return s;
     }
     // Explicit import/reset may replace a save only after its current snapshot is readable.
