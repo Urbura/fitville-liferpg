@@ -70,7 +70,7 @@ Each entry in `skills` contains its name, hint, icon, colour, regular titles, ma
 - `xp.costIncrease`: each subsequent level costs 1 additional XP.
 - `bonusMilestones`: +1, +2, +3, and +4 XP at skill levels 10, 20, 30, and 40. The current save validator supports bonus values 0–4.
 - Total Level is the sum of all five skill levels, ranging from 5–250.
-- Check-ins are limited to one per skill per reset day. A zero rating earns zero XP; positive ratings receive the bonus earned by the skill level before that check-in.
+- Check-ins are limited to one per skill per reset day. Completed skills offer **Edit today’s rating** until the daily reset. Corrections replace the original XP contribution, retain the original bonus, and do not replay celebrations or increase participation counts. A zero rating earns zero XP; positive ratings receive the bonus earned by the skill level before that check-in.
 
 Each skill needs 1,421 total XP to reach level 50. Perfect daily check-ins with the current bonuses take 191 days. Changes to XP settings recalculate levels from existing saved XP; review that effect before deploying.
 
