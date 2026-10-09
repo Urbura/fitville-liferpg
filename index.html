@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#087bd9" />
     <title>FitQuest</title>
-    <link rel="stylesheet" href="css/fitville.css?v=20261009-mobile" />
+    <link rel="stylesheet" href="css/fitville.css?v=20261009-rewards" />
   </head>
   <body>
     <header>
@@ -13,7 +13,7 @@
         <div class="muted">YOUR EVERYDAY ADVENTURE</div>
         <h1>FitQuest</h1>
         <p class="muted">Track habits. Build your fitness skills.</p>
-        <div class="stats"><span id="overall-title"></span><span id="overall-level"></span></div>
+        <div class="stats"><span id="overall-title"></span><button id="overall-level" type="button" aria-haspopup="dialog" aria-controls="total-dialog" title="View Total Level rewards"></button></div>
       </div>
     </header>
     <div id="dev-tools" hidden>
@@ -74,12 +74,16 @@
       <div id="level-content"></div>
       <button id="level-next" class="wide">Continue</button>
     </dialog>
+    <dialog id="total-dialog" aria-labelledby="total-heading">
+      <div class="row"><h2 id="total-heading">Total Level rewards</h2><button id="total-close" class="popup-close" aria-label="Close Total Level rewards">×</button></div>
+      <div id="total-content"></div>
+    </dialog>
     <div id="notice" role="status"></div>
     <nav aria-label="Main navigation">
       <button data-tab="settings"><span class="settings-icon" aria-hidden="true"></span>Settings</button>
     </nav>
     <script src="js/config.js?v=20261008-config"></script>
     <script src="js/progression.js?v=20261008-progression"></script>
-    <script src="js/fitville.js?v=20261009-corrections"></script>
+    <script src="js/fitville.js?v=20261009-rewards"></script>
   </body>
 </html>
