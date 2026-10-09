@@ -1209,3 +1209,23 @@ header .stats #overall-title {
     display: none;
   }
 }
+
+/* Collections share the existing compact header controls. */
+header nav button[data-tab="collections"] { position: relative; }
+header nav .collection-count {
+  position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px;
+  padding: 1px 4px; border-radius: 12px; background: #e84e48; color: #fff;
+  font: 700 11px/17px system-ui, sans-serif; box-shadow: 0 1px 3px #1238;
+}
+header nav .collection-count[hidden] { display: none; }
+.collections .achievement-list { display: grid; gap: 8px; margin: 12px 0 20px; }
+.collections .achievement { display: grid; grid-template-columns: 38px 1fr; gap: 10px; align-items: center; padding: 10px; border: 1px solid #b9d8e9; border-radius: 12px; background: #f4faff; }
+.collections .achievement.locked { opacity: .72; }
+.collections .achievement-symbol { font-size: 24px; }
+.collections .achievement small { display: block; font-size: 12px; margin: 3px 0; }
+.collections .achievement progress { width: 100%; height: 7px; }
+@media(max-width:420px) {
+  header nav { gap: 4px; }
+  header nav button[data-tab="collections"] { width: 38px; height: 38px; min-height: 38px; }
+  header nav button[data-tab="collections"] .collections-icon { font-size: 16px; }
+}
