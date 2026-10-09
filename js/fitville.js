@@ -313,6 +313,116 @@
       );
     }
 
+    // Collections: achievements are derived from existing levels and check-in history.
+    // Only the list of viewed badge IDs is saved; earned achievements cannot be lost.
+    const ACHIEVEMENTS = [
+      ...[3, 7, 14, 30, 100].map(n => ({ id: 'days-' + n, category: 'Consistency', name: n + ' Active Days', description: 'Check in on ' + n + ' different days', goal: n, kind: 'days' })),
+      ...[3, 7, 14, 30].map(n => ({ id: 'streak-' + n, category: 'Consistency', name: n + '-Day Streak', description: 'Check in ' + n + ' days in a row', goal: n, kind: 'streak' })),
+      ...[10, 25, 50, 75, 100, 150, 200, 250].map(n => ({ id: 'total-' + n, category: 'Levels', name: 'Total Level ' + n, description: 'Reach Total Level ' + n, goal: n, kind: 'total' })),
+      ...[10, 25, 50].map(n => ({ id: 'skill-any-' + n, category: 'Skills', name: 'Skill Level ' + n, description: 'Reach Level ' + n + ' in any skill', goal: n, kind: 'skill' })),
+      ...SKILLS.map((skill, i) => ({ id: 'specialist-' + i, category: 'Skills', name: skill.name + ' Specialist', description: 'Reach Level 25 in ' + skill.name, goal: 25, kind: 'specialist', skill: i })),
+      { id: 'all-skills-10', category: 'Skills', name: 'Well Rounded', description: 'Reach Level 10 in all five skills', goal: 10, kind: 'all' },
+      { id: 'weekly-best', category: 'Personal Bests', name: 'New Weekly Best', description: 'Exceed your previous best number of active days in a completed week', goal: 1, kind: 'weekly' },
+      { id: 'weekly-improvement', category: 'Personal Bests', name: 'On the Rise', description: 'Check in on more days than the previous completed week', goal: 1, kind: 'improved' },
+    ];
+    function achievementStats() {
+      const active = Object.keys(state.days).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k) && checkedCount(state.days[k]) > 0).sort();
+      const activeSet = new Set(active);
+      let longest = 0;
+      for (const key of active) {
+        const prior = new Date(key + 'T00:00:00Z');
+        prior.setUTCDate(prior.getUTCDate() - 1);
+        const previous = prior.toISOString().slice(0, 10);
+        let length = 1;
+        for (let d = previous; activeSet.has(d);) {
+          length++;
+          const date = new Date(d + 'T00:00:00Z');
+          date.setUTCDate(date.getUTCDate() - 1);
+          d = date.toISOString().slice(0, 10);
+        }
+        longest = Math.max(longest, length);
+      }
+      const weekly = new Map();
+      for (const key of active) {
+        const date = new Date(key + 'T00:00:00Z');
+        date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 6) % 7);
+        const monday = date.toISOString().slice(0, 10);
+        weekly.set(monday, (weekly.get(monday) || 0) + 1);
+      }
+      const current = new Date(day() + 'T00:00:00Z');
+      current.setUTCDate(current.getUTCDate() - (current.getUTCDay() + 6) % 7);
+      const currentMonday = current.toISOString().slice(0, 10);
+      const completeWeeks = [...weekly].filter(([m]) => m < currentMonday).sort(([a], [b]) => a.localeCompare(b));
+      let weeklyBest = false, improved = false, best = 0, previous = null;
+      for (const [, count] of completeWeeks) {
+        if (previous !== null) {
+          if (count > best) weeklyBest = true;
+          if (count > previous) improved = true;
+        }
+        best = Math.max(best, count);
+        previous = count;
+      }
+      return { activeDays: active.length, longest, weeklyBest, improved, levels: state.skills.map(s => level(s.xp)), total: totalSkillLevel() };
+    }
+    function achievementProgress(a, s) {
+      switch (a.kind) {
+        case 'days': return s.activeDays;
+        case 'streak': return s.longest;
+        case 'total': return s.total;
+        case 'skill': return Math.max(...s.levels);
+        case 'specialist': return s.levels[a.skill];
+        case 'all': return Math.min(...s.levels);
+        case 'weekly': return s.weeklyBest ? 1 : 0;
+        case 'improved': return s.improved ? 1 : 0;
+        default: return 0;
+      }
+    }
+    function earnedAchievements() {
+      const stats = achievementStats();
+      return ACHIEVEMENTS.filter(a => achievementProgress(a, stats) >= a.goal).map(a => a.id);
+    }
+    function unseenAchievements() {
+      const viewed = Array.isArray(state.achievementsSeen) ? state.achievementsSeen : [];
+      return earnedAchievements().filter(id => !viewed.includes(id));
+    }
+    function updateCollectionBadge() {
+      const button = document.querySelector('nav button[data-tab="collections"]');
+      if (!button) return;
+      const count = DEV ? 0 : unseenAchievements().length;
+      const badge = button.querySelector('.collection-count');
+      if (badge) {
+        badge.textContent = count > 9 ? '9+' : String(count);
+        badge.hidden = count === 0;
+      }
+      button.setAttribute('aria-label', count ? 'Collections, ' + count + ' new achievements' : 'Collections');
+      button.title = count ? 'Collections · ' + count + ' new' : 'Collections';
+    }
+    function renderCollections() {
+      const stats = achievementStats(), earned = earnedAchievements();
+      return '<section class="card collections"><button class="back-button" data-tab="dashboard">← Back</button>' +
+        '<h2>🏆 Collections</h2><p><strong>' + earned.length + ' / ' + ACHIEVEMENTS.length +
+        '</strong> achievements unlocked</p><progress max="' + ACHIEVEMENTS.length + '" value="' + earned.length +
+        '" aria-label="Collection completion"></progress>' +
+        (DEV ? '<p class="muted">Developer preview. Achievements are not marked as viewed.</p>' : '') +
+        ['Consistency', 'Levels', 'Personal Bests', 'Skills'].map(category =>
+          '<h3>' + category + '</h3><div class="achievement-list">' +
+          ACHIEVEMENTS.filter(a => a.category === category).map(a => {
+            const progress = achievementProgress(a, stats), unlocked = progress >= a.goal;
+            return '<div class="achievement ' + (unlocked ? 'unlocked' : 'locked') + '">' +
+              '<span class="achievement-symbol" aria-hidden="true">' + (unlocked ? '🏅' : '🔒') + '</span>' +
+              '<div><strong>' + safeText(a.name) + '</strong><small>' + safeText(a.description) +
+              '</small><progress max="' + a.goal + '" value="' + Math.min(a.goal, progress) +
+              '" aria-label="' + safeText(a.name) + ' progress"></progress><small>' +
+              Math.min(a.goal, progress) + ' / ' + a.goal + (unlocked ? ' · Unlocked!' : '') +
+              '</small></div></div>';
+          }).join('') + '</div>').join('') + '</section>';
+    }
+    function markCollectionsViewed() {
+      if (DEV) return;
+      state.achievementsSeen = [...new Set([...(Array.isArray(state.achievementsSeen) ? state.achievementsSeen : []), ...earnedAchievements()])];
+      save();
+    }
+
     // Dashboard and level celebrations
     const COLORS = SKILLS.map((skill) => skill.color);
     // Count distinct check-in days in the Monday–Sunday week, using the daily reset boundary.
@@ -578,6 +688,7 @@
       document.getElementById('overall-title').innerHTML = rewardBadge(reward) + '<span>' + safeText(reward.title) + '</span>';
       if (document.getElementById('total-dialog').open)
         document.getElementById('total-content').innerHTML = totalRewardsPanel();
+      updateCollectionBadge();
       document.body.dataset.theme = reward.theme;
       document.body.style.setProperty('--tracker-background', CONFIG.themes[reward.theme]);
     }
@@ -626,6 +737,7 @@
       return '<button class="back-button" data-tab="dashboard">← Back to Dashboard</button><section class="card tools"><h2>⚙ Settings</h2><p class="muted">Progress stays in this browser. Export before switching devices or clearing browser data.</p><button id="export">Export FitQuest backup</button><p><label>Import FitQuest backup<br><input id="import" type="file" accept=".json,application/json" style="max-width:100%;margin-top:10px" aria-label="Import FitQuest backup"></label></p><button id="restart" class="restart wide">Reset tracker progress</button></section>';
     }
     function renderScreen() {
+      if (tab === 'collections') return renderCollections();
       if (tab === 'settings') return renderSettings();
       return dashboard();
     }
@@ -738,6 +850,7 @@
         notify(SKILLS[i].name + ' is already checked in today.');
         return;
       }
+      const earnedBefore = DEV ? [] : earnedAchievements();
       const persisted = save();
       render(false);
       // A newer shared save can replace this state during saving.
@@ -755,6 +868,8 @@
               : ' · temporary; export a backup to keep this progress.'),
       );
       queueLevels(i, result.before, result.after, result.totalBefore, result.totalAfter);
+      const newBadges = DEV ? [] : earnedAchievements().filter(id => !earnedBefore.includes(id));
+      if (newBadges.length) notify('🏆 ' + newBadges.length + ' achievement' + (newBadges.length === 1 ? '' : 's') + ' unlocked! Check Collections at the top.');
     }
 
     // User actions and backup import
@@ -919,6 +1034,7 @@
       if (b.dataset.tab) {
         const targetTab = b.dataset.tab;
         tab = b.closest('nav') && tab === targetTab ? 'dashboard' : targetTab;
+        if (tab === 'collections') markCollectionsViewed();
         render();
         window.scrollTo(0, 0);
         return;
