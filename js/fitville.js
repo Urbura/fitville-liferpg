@@ -1040,12 +1040,9 @@
         ' total XP</span><span>' +
         (maxed
           ? 'Level ' + MAX_LEVEL + ' · MAX'
-          : earned.toLocaleString() + ' / ' + needed.toLocaleString() + ' XP this level') +
-        '</span></div><p>' +
-        (maxed
-          ? 'Mastery achieved — ' + CROWNS[i]
-          : (XP[l + 1] - x.xp).toLocaleString() + ' XP to level ' + (l + 1)) +
-        '</p>' +
+          : earned.toLocaleString() + ' / ' + needed.toLocaleString() + ' XP to Level ' + (l + 1)) +
+        '</span></div>' +
+        (maxed ? '<p>Mastery achieved — ' + CROWNS[i] + '</p>' : '') +
         (maxed
           ? crown(i)
           : '<p class="muted">Next title: <strong>' +
