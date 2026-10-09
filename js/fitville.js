@@ -1066,7 +1066,6 @@
         ' ' +
         s.name +
         '</h2><button id="check-close" class="popup-close" aria-label="Close check-in">×</button></div>' +
-        xpPanel +
         (done && !editing
           ? '<div class="saved-score">✓ Checked in today · ' +
             entry.scores[i] +
@@ -1103,7 +1102,8 @@
             ).join('') +
             '</div><p class="muted rating-save-note">' +
             (editing ? 'Tap a score to save your correction. This still counts as one check-in.' :
-              'Tap a score to save immediately. One check-in per skill each day.') + '</p>');
+              'Tap a score to save immediately. One check-in per skill each day.') + '</p>') +
+        xpPanel;
       if (!document.getElementById('check-dialog').open)
         document.getElementById('check-dialog').showModal();
     }
