@@ -1229,3 +1229,10 @@ header nav .collection-count[hidden] { display: none; }
   header nav button[data-tab="collections"] { width: 38px; height: 38px; min-height: 38px; }
   header nav button[data-tab="collections"] .collections-icon { font-size: 16px; }
 }
+
+/* Keep all collection assets centered in their circular controls. */
+header nav button[data-tab="collections"] { display: grid; place-items: center; }
+header nav .collections-icon { display: block; width: 30px; height: 30px; object-fit: contain; margin: auto; }
+.collections .achievement-symbol { display: grid; place-items: center; width: 40px; height: 40px; }
+.collections .achievement-symbol img { display: block; width: 40px; height: 40px; object-fit: contain; }
+@media(max-width:420px) { header nav button[data-tab="collections"] .collections-icon { width: 27px; height: 27px; } }
